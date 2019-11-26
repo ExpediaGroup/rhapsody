@@ -32,6 +32,15 @@
         <tag>HEAD</tag>
     </scm>
 
+    <repositories>
+        <!--Necessary for depending on Confluent libs (i.e. Schema Registry)-->
+        <repository>
+            <id>confluent</id>
+            <name>Confluent, Inc.</name>
+            <url>http://packages.confluent.io/maven</url>
+        </repository>
+    </repositories>
+
     <modules>
         <module>amqp-test</module>
         <module>api</module>
