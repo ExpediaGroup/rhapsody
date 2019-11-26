@@ -33,6 +33,7 @@
     </scm>
 
     <repositories>
+        <!--Necessary for depending on Confluent libs (i.e. Schema Registry)-->
         <repository>
             <id>confluent</id>
             <name>Confluent, Inc.</name>
