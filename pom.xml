@@ -32,6 +32,14 @@
         <tag>HEAD</tag>
     </scm>
 
+    <repositories>
+        <repository>
+            <id>confluent</id>
+            <name>Confluent, Inc.</name>
+            <url>http://packages.confluent.io/maven</url>
+        </repository>
+    </repositories>
+
     <modules>
         <module>amqp-test</module>
         <module>api</module>
