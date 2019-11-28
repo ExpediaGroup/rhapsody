@@ -2,6 +2,7 @@
 
 # Rhapsody
 [![Build Status](https://travis-ci.com/ExpediaGroup/rhapsody.svg?branch=master)](https://travis-ci.com/ExpediaGroup/rhapsody)
+
 Rhapsody is an asynchronous message processing library that builds on the [Reactive Streams Specification](http://www.reactive-streams.org/) to deliver reusable functionalities under the following categories:
 - At-Least-Once Processing Guarantee
 - Quality of Service
