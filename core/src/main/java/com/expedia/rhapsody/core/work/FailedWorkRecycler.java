@@ -41,17 +41,25 @@ public abstract class FailedWorkRecycler<W extends Work, R> implements FailureCo
     public void accept(W work, Throwable error) {
         if (isRecyclable(work, error)) {
             R recycled = recycle(work, error);
-            LOGGER.info("Recycling failure of Work={}: subject={} recycled={} error={}",
-                work.getClass().getSimpleName(), work.workHeader().subject(), recycled, error.getMessage());
+            hookOnRecycle(work, recycled, error);
             recycleConsumer.accept(recycled);
         } else {
-            LOGGER.info("Dropping failed Work={}: subject={} error={}",
-                work.getClass().getSimpleName(), work.workHeader().subject(), error.getMessage());
+            hookOnDrop(work, error);
         }
     }
 
     protected boolean isRecyclable(W work, Throwable error) {
         return !isRecycleExpired(work) && !isRecycleMaxedOut(work) && isRecyclableError(error);
+    }
+
+    protected void hookOnRecycle(W work, R recycled, Throwable error) {
+        LOGGER.warn("Recycling failure of Work={}: subject={} recycled={} error={}",
+            work.getClass().getSimpleName(), work.workHeader().subject(), recycled, error.getMessage());
+    }
+
+    protected void hookOnDrop(W work, Throwable error) {
+        LOGGER.warn("Dropping failed Work={}: subject={} error={}",
+            work.getClass().getSimpleName(), work.workHeader().subject(), error.getMessage());
     }
 
     protected abstract R recycle(W work, Throwable error);
