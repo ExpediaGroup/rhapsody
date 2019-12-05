@@ -19,10 +19,14 @@ import java.io.File;
 import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-import org.apache.qpid.server.Broker;
-import org.apache.qpid.server.BrokerOptions;
+import org.apache.qpid.server.Main;
+import org.apache.qpid.server.model.SystemConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,64 +62,64 @@ public class TestAmqpFactory {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TestAmqpFactory.class);
 
-    private static BrokerOptions brokerOptions;
+    private static Map<String, String> brokerOptions;
 
     public Map<String, ?> createAmqp() {
-        return getBrokerOptions().getConfigProperties();
+        return getBrokerOptions();
     }
 
-    private static BrokerOptions getBrokerOptions() {
+    private static Map<String, String> getBrokerOptions() {
         return brokerOptions == null ? brokerOptions = initializeBroker() : brokerOptions;
     }
 
-    private static BrokerOptions initializeBroker() {
-        BrokerOptions brokerOptions = createBrokerOptions();
+    private static Map<String, String> initializeBroker() {
+        Map<String, String> brokerOptions = createBrokerOptions();
         if (LOCAL_AMQP) {
             startLocalBroker(brokerOptions);
         }
         return brokerOptions;
     }
 
-    private static BrokerOptions createBrokerOptions() {
-        BrokerOptions brokerOptions = new BrokerOptions();
-        brokerOptions.setConfigProperty(HOST_PROPERTY, TEST_AMQP_HOST);
-        brokerOptions.setConfigProperty(PORT_PROPERTY, TEST_AMQP_PORT);
-        brokerOptions.setConfigProperty(VIRTUAL_HOST_PROPERTY, TEST_AMQP_VIRTUAL_HOST);
-        brokerOptions.setConfigProperty(USERNAME_PROPERTY, TEST_AMQP_USERNAME);
-        brokerOptions.setConfigProperty(PASSWORD_PROPERTY, TEST_AMQP_PASSWORD);
-        brokerOptions.setConfigProperty(SSL_PROPERTY, TEST_AMQP_SSL_PROTOCOL);
+    private static Map<String, String> createBrokerOptions() {
+        Map<String, String> brokerOptions = new HashMap<>();
+        brokerOptions.put(HOST_PROPERTY, TEST_AMQP_HOST);
+        brokerOptions.put(PORT_PROPERTY, TEST_AMQP_PORT);
+        brokerOptions.put(VIRTUAL_HOST_PROPERTY, TEST_AMQP_VIRTUAL_HOST);
+        brokerOptions.put(USERNAME_PROPERTY, TEST_AMQP_USERNAME);
+        brokerOptions.put(PASSWORD_PROPERTY, TEST_AMQP_PASSWORD);
+        brokerOptions.put(SSL_PROPERTY, TEST_AMQP_SSL_PROTOCOL);
         return brokerOptions;
     }
 
-    private static void startLocalBroker(BrokerOptions brokerOptions) {
+    private static void startLocalBroker(Map<String, String> brokerOptions) {
         try {
-            Path tempDirectory = Files.createTempDirectory(TestAmqpFactory.class.getSimpleName() + "_" + System.currentTimeMillis());
-            BrokerOptions localBrokerOptions = createLocalBrokerOptions(brokerOptions, tempDirectory);
-            System.getProperties().putIfAbsent("derby.stream.error.file", new File(tempDirectory.toFile(), "derby.log").getAbsolutePath());
             LOGGER.info("BEGINNING STARTUP OF LOCAL AMQP BROKER");
-            new Broker().startup(localBrokerOptions);
+            Path tempDirectory = Files.createTempDirectory(TestAmqpFactory.class.getSimpleName() + "_" + System.currentTimeMillis());
+            List<String> localBrokerArguments = createLocalBrokerArguments(brokerOptions, tempDirectory);
+            System.getProperties().putIfAbsent("derby.stream.error.file", new File(tempDirectory.toFile(), "derby.log").getAbsolutePath());
+            org.apache.qpid.server.Main.main(localBrokerArguments.toArray(new String[0]));
             LOGGER.info("FINISHED STARTUP OF LOCAL AMQP BROKER");
         } catch (Exception e) {
             throw new IllegalStateException("Failed to start local Broker: " + e);
         }
     }
 
-    private static BrokerOptions createLocalBrokerOptions(BrokerOptions baseBrokerOptions, Path directory) throws Exception {
-        BrokerOptions localBrokerOptions = new BrokerOptions();
-        baseBrokerOptions.getConfigProperties().forEach(localBrokerOptions::setConfigProperty);
-        localBrokerOptions.setOverwriteConfigurationStore(true);
-        localBrokerOptions.setInitialConfigurationLocation(createAmqpConfig(directory).getCanonicalPath());
-        localBrokerOptions.setConfigProperty(BrokerOptions.QPID_HOME_DIR, directory.toString());
-        localBrokerOptions.setConfigProperty(BrokerOptions.QPID_WORK_DIR, directory.toString());
-        return localBrokerOptions;
+    private static List<String> createLocalBrokerArguments(Map<String, String> brokerOptions, Path tempDirectory) throws Exception {
+        List<String> brokerArguments = new ArrayList<>(Arrays.asList(
+            "--initial-config-path", createAmqpConfig(tempDirectory).getCanonicalPath(),
+            "--config-property", String.format("%s=%s", SystemConfig.QPID_WORK_DIR, tempDirectory.toString()),
+            "--config-property", String.format("%s=%s", Main.PROPERTY_QPID_HOME, tempDirectory.toString())));
+        brokerOptions.forEach((key, value) -> brokerArguments.addAll(Arrays.asList(
+            "--config-property", String.format("%s=%s", key, value))));
+        return brokerArguments;
     }
 
     private static File createAmqpConfig(Path directory) throws Exception {
-        File configFile = Files.createTempFile(directory, "amqp", BrokerOptions.DEFAULT_INITIAL_CONFIG_NAME).toFile();
+        File configFile = Files.createTempFile(directory, "amqp", SystemConfig.DEFAULT_INITIAL_CONFIG_NAME).toFile();
         PrintWriter configWriter = new PrintWriter(configFile);
         configWriter.println("{");
         configWriter.println("    \"name\": \"broker\",");
-        configWriter.println("    \"modelVersion\": \"6.1\",");
+        configWriter.println("    \"modelVersion\": \"7.1\",");
         configWriter.println("    \"virtualhostnodes\": [{");
         configWriter.println("        \"type\": \"Memory\",");
         configWriter.println("        \"name\": \"default\",");
