@@ -41,7 +41,7 @@ public class AllOrNothingYoungestInstanceWinsPartitionAssignorTest {
 
     private static final String TOPIC_2 = "topic-2";
 
-    private final AbstractPartitionAssignor partitionAssignor = new AllOrNothingPartitionAssignor();
+    private final AbstractPartitionAssignor partitionAssignor = new AllOrNothingYoungestInstanceWinsPartitionAssignor();
 
     @Test
     public void emptySubscriptionsResultInNoAssignments() {
@@ -97,8 +97,8 @@ public class AllOrNothingYoungestInstanceWinsPartitionAssignorTest {
         partitionCountsByTopic.put(TOPIC_1, 10);
 
         Map<String, PartitionAssignor.Subscription> subscriptionsByMemberId = new LinkedHashMap<>();
-        subscriptionsByMemberId.put(MEMBER_ID_1, new PartitionAssignor.Subscription(Collections.singletonList(TOPIC_1), AllOrNothingPartitionAssignor.serializeBorn(now)));
-        subscriptionsByMemberId.put(MEMBER_ID_2, new PartitionAssignor.Subscription(Collections.singletonList(TOPIC_1), AllOrNothingPartitionAssignor.serializeBorn(now)));
+        subscriptionsByMemberId.put(MEMBER_ID_1, new PartitionAssignor.Subscription(Collections.singletonList(TOPIC_1), AbstractAllOrNothingPartitionAssignor.serializeBorn(now)));
+        subscriptionsByMemberId.put(MEMBER_ID_2, new PartitionAssignor.Subscription(Collections.singletonList(TOPIC_1), AbstractAllOrNothingPartitionAssignor.serializeBorn(now)));
 
         Map<String, List<TopicPartition>> result = partitionAssignor.assign(partitionCountsByTopic, subscriptionsByMemberId);
 
@@ -115,9 +115,9 @@ public class AllOrNothingYoungestInstanceWinsPartitionAssignorTest {
 
         Map<String, PartitionAssignor.Subscription> subscriptionsByMemberId = new LinkedHashMap<>();
         subscriptionsByMemberId.put(MEMBER_ID_1, new PartitionAssignor.Subscription(
-            Collections.singletonList(TOPIC_1), AllOrNothingPartitionAssignor.serializeBorn(now)));
+            Collections.singletonList(TOPIC_1), AbstractAllOrNothingPartitionAssignor.serializeBorn(now)));
         subscriptionsByMemberId.put(MEMBER_ID_2, new PartitionAssignor.Subscription(
-            Collections.singletonList(TOPIC_1), AllOrNothingPartitionAssignor.serializeBorn(now.minusMillis(1L))));
+            Collections.singletonList(TOPIC_1), AbstractAllOrNothingPartitionAssignor.serializeBorn(now.minusMillis(1L))));
 
         Map<String, List<TopicPartition>> result = partitionAssignor.assign(partitionCountsByTopic, subscriptionsByMemberId);
 
@@ -135,9 +135,9 @@ public class AllOrNothingYoungestInstanceWinsPartitionAssignorTest {
 
         Map<String, PartitionAssignor.Subscription> subscriptionsByMemberId = new LinkedHashMap<>();
         subscriptionsByMemberId.put(MEMBER_ID_1, new PartitionAssignor.Subscription(
-            Collections.singletonList(TOPIC_1), AllOrNothingPartitionAssignor.serializeBorn(now)));
+            Collections.singletonList(TOPIC_1), AbstractAllOrNothingPartitionAssignor.serializeBorn(now)));
         subscriptionsByMemberId.put(MEMBER_ID_2, new PartitionAssignor.Subscription(
-            Arrays.asList(TOPIC_1, TOPIC_2), AllOrNothingPartitionAssignor.serializeBorn(now.minusMillis(1L))));
+            Arrays.asList(TOPIC_1, TOPIC_2), AbstractAllOrNothingPartitionAssignor.serializeBorn(now.minusMillis(1L))));
 
         Map<String, List<TopicPartition>> result = partitionAssignor.assign(partitionCountsByTopic, subscriptionsByMemberId);
 
