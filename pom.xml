@@ -296,8 +296,7 @@
                     <excludes>
                         <exclude>**/pom.xml</exclude>
                         <exclude>**/README</exclude>
-                        <exclude>src/test/resources/**</exclude>
-                        <exclude>src/main/resources/**</exclude>
+                        <exclude>travis/**</exclude>
                     </excludes>
                 </configuration>
                 <executions>
