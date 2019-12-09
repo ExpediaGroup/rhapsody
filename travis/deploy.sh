@@ -5,7 +5,8 @@ set -e
 if [ "$TRAVIS_PULL_REQUEST" == 'false' ]; then
   if [ ! -z "$TRAVIS_TAG" ]; then
     echo "Deploying release"
-    gpg --import ${GPG_DIR}/secring.gpg
+    gpg --version
+    gpg --import ${GPG_DIR}/gpg.asc
     mvn clean deploy --settings travis/mvn-settings.xml -B -U -P oss-release "$@" -DskipTests=true
   else
     echo "Deploying snapshot"
