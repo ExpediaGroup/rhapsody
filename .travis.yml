@@ -6,7 +6,8 @@ cache:
     - "~/.m2/repository"
 before_deploy:
   - mkdir -p ${GPG_DIR}
-  - openssl aes-256-cbc -K $encrypted_cd1337d2ab17_key -iv $encrypted_cd1337d2ab17_iv -in travis/gpg.asc.enc -out ${GPG_DIR}/gpg.asc -d
+  - openssl aes-256-cbc -K $encrypted_cd1337d2ab17_key -iv $encrypted_cd1337d2ab17_iv
+    -in travis/gpg.asc.enc -out ${GPG_DIR}/gpg.asc -d
 deploy:
   - provider: script
     script: travis/deploy.sh
