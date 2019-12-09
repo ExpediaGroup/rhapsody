@@ -32,9 +32,9 @@
     </licenses>
 
     <scm>
-        <connection>scm:git:git@github.com/expediagroup/rhapsody.git</connection>
-        <developerConnection>scm:git:ssh@github.com/expediagroup/rhapsody.git</developerConnection>
-        <url>http://github.com/expediagroup/rhapsody</url>
+        <connection>scm:git:git@github.com/ExpediaGroup/rhapsody.git</connection>
+        <developerConnection>scm:git:ssh@github.com/ExpediaGroup/rhapsody.git</developerConnection>
+        <url>http://github.com/ExpediaGroup/rhapsody</url>
         <tag>HEAD</tag>
     </scm>
 
