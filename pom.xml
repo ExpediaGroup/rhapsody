@@ -31,7 +31,7 @@
 
     <scm>
         <connection>scm:git:git@github.com:ExpediaGroup/rhapsody.git</connection>
-        <developerConnection>scm:git:ssh@github.com:ExpediaGroup/rhapsody.git</developerConnection>
+        <developerConnection>scm:git:git@github.com:ExpediaGroup/rhapsody.git</developerConnection>
         <url>http://github.com/ExpediaGroup/rhapsody</url>
         <tag>rhapsody-0.0.1</tag>
     </scm>
