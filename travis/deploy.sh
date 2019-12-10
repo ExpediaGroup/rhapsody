@@ -10,6 +10,6 @@ if [ "$TRAVIS_PULL_REQUEST" == 'false' ]; then
     mvn deploy --settings travis/mvn-settings.xml -B -U -P oss-release -DskipTests=true -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
   else
     echo "Deploying snapshot"
-    mvn deploy --settings travis/mvn-settings.xml -B -U -P oss-release -DskipTests=true -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+    mvn deploy --settings travis/mvn-settings.xml -B -U -DskipTests=true -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
   fi
 fi
