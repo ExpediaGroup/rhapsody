@@ -374,7 +374,7 @@
                 <version>2.5.3</version>
                 <configuration>
                     <autoVersionSubmodules>true</autoVersionSubmodules>
-                    <useReleaseProfile>true</useReleaseProfile>
+                    <useReleaseProfile>false</useReleaseProfile>
                     <releaseProfiles>oss-release</releaseProfiles>
                     <goals>deploy</goals>
                 </configuration>
