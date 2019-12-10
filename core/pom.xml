@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.expedia</groupId>
+        <groupId>com.expediagroup</groupId>
         <artifactId>rhapsody</artifactId>
         <version>0.0.14-SNAPSHOT</version>
     </parent>
@@ -14,7 +14,7 @@
     <dependencies>
         <!--Project Dependencies-->
         <dependency>
-            <groupId>com.expedia</groupId>
+            <groupId>com.expediagroup</groupId>
             <artifactId>rhapsody-api</artifactId>
         </dependency>
 
