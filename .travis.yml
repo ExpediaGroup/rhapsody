@@ -11,12 +11,12 @@ before_deploy:
 deploy:
   - provider: script
     script: travis/deploy.sh
-    cleanup: false
+    skip_cleanup: true
     on:
       branch: master
   - provider: script
     script: travis/deploy.sh
-    cleanup: false
+    skip_cleanup: false
     on:
       tags: true
 after_deploy:
