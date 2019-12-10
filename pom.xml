@@ -4,7 +4,7 @@
 
     <groupId>com.expedia</groupId>
     <artifactId>rhapsody</artifactId>
-    <version>0.0.8-SNAPSHOT</version>
+    <version>0.0.8</version>
     <packaging>pom</packaging>
     <name>${project.groupId}:${project.artifactId}</name>
     <description>ReactiveStreams decoration library with support for at-least-once processing guarantees</description>
@@ -33,7 +33,7 @@
         <connection>scm:git:git@github.com:ExpediaGroup/rhapsody.git</connection>
         <developerConnection>scm:git:git@github.com:ExpediaGroup/rhapsody.git</developerConnection>
         <url>http://github.com/ExpediaGroup/rhapsody</url>
-        <tag>HEAD</tag>
+        <tag>rhapsody-0.0.8</tag>
     </scm>
 
     <distributionManagement>
