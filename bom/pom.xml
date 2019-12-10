@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.expedia</groupId>
+        <groupId>com.expediagroup</groupId>
         <artifactId>rhapsody</artifactId>
         <version>0.0.14-SNAPSHOT</version>
     </parent>
@@ -14,47 +14,47 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>com.expedia</groupId>
+                <groupId>com.expediagroup</groupId>
                 <artifactId>rhapsody-amqp-test</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.expedia</groupId>
+                <groupId>com.expediagroup</groupId>
                 <artifactId>rhapsody-api</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.expedia</groupId>
+                <groupId>com.expediagroup</groupId>
                 <artifactId>rhapsody-core</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.expedia</groupId>
+                <groupId>com.expediagroup</groupId>
                 <artifactId>rhapsody-kafka</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.expedia</groupId>
+                <groupId>com.expediagroup</groupId>
                 <artifactId>rhapsody-kafka-test</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.expedia</groupId>
+                <groupId>com.expediagroup</groupId>
                 <artifactId>rhapsody-rabbitmq</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.expedia</groupId>
+                <groupId>com.expediagroup</groupId>
                 <artifactId>rhapsody-reactor-kafka</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.expedia</groupId>
+                <groupId>com.expediagroup</groupId>
                 <artifactId>rhapsody-reactor-rabbitmq</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.expedia</groupId>
+                <groupId>com.expediagroup</groupId>
                 <artifactId>rhapsody-zookeeper-test</artifactId>
                 <version>${project.version}</version>
             </dependency>
