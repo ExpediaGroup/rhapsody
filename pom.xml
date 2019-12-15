@@ -295,6 +295,8 @@
                         <exclude>**/pom.xml</exclude>
                         <exclude>**/README</exclude>
                         <exclude>config/**</exclude>
+                        <exclude>.mvn/**</exclude>
+                        <exclude>mvnw.cmd</exclude>
                     </excludes>
                 </configuration>
                 <executions>

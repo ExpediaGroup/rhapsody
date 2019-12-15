@@ -26,7 +26,7 @@ Please open Issues here on GitHub for bug reporting. Make sure to include the "b
  - Wait for **Issue Triage** before you start coding.
  - Create a feature branch off of master with a meaningful name (ideally referencing issue you created)
  - Work on your change. Be sure to include **JUnit test cases**. This will greatly help maintainers while reviewing your change
- - **Run all tests locally** prior to submission: `mvn clean verify -U`
+ - **Run all tests locally** prior to submission: `./mvnw clean verify -U`
  - Finally, you're **ready to submit** your Pull-Request :+1:
 
 ## :mag: Do you need a new Feature or want to modify an existing Feature?
