@@ -9,7 +9,7 @@ The following Kafka [End to End to End](src/main/java/com/expediagroup/rhapsody/
 - [Kafka Part 4](src/main/java/com/expediagroup/rhapsody/samples/endtoendtoend/KafkaPart4.java): Add another downstream consumer of processed results
 
 ## Infrastructural Interoperation
-[RabbitmqToKafka](src/main/java/com/expediagroup/rhapsody/samples/infrastructuralinteroperability/RabbitmqToKafka.java) shows how Rhapsody allows interoperability between RabbitMQ (as a source/Publisher) and Kafka (as a sink/Subscriber) while maintaining at-least-once processing guarantees
+[RabbitmqToKafka](src/main/java/com/expediagroup/rhapsody/samples/infrastructuralinteroperability/RabbitmqToKafka.java) shows how Rhapsody allows interoperability between RabbitMQ (as a source/Publisher) and Kafka (as a sink/Subscriber) while maintaining at-least-once processing guarantees. For completeness, [KafkaToRabbitMQ](src/main/java/com/expediagroup/rhapsody/samples/infrastructuralinteroperability/KafkaToRabbitmq.java) shows the inverse, still maintaining at-least-once guarantees.
 
 ## Parallelism
 [Kafka Topic Partition Parallelism](src/main/java/com/expediagroup/rhapsody/samples/parallelism/KafkaTopicPartitionParallelism.java) shows how to parallelize processing of Kafka Records and subsequent transformations by grouping of Topic-Partitions and assigning a Thread per group.

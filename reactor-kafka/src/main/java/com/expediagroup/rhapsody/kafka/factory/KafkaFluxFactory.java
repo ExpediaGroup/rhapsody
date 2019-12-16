@@ -86,7 +86,7 @@ public class KafkaFluxFactory<K, V> {
 
     public Flux<ConsumerRecord<K, V>> receiveAuto(Collection<String> topics, AutoAcknowledgementConfig autoAcknowledgementConfig) {
         return receive(topics, new MultipleReceiverAcknowledgementStrategy())
-            .compose(new AutoAcknowledgingTransformer<>(autoAcknowledgementConfig, KafkaFluxFactory::collectAcknowledgers, KafkaFluxFactory::acknowledge))
+            .transformDeferred(new AutoAcknowledgingTransformer<>(autoAcknowledgementConfig, KafkaFluxFactory::collectAcknowledgers, KafkaFluxFactory::acknowledge))
             .map(Acknowledgeable::get);
     }
 

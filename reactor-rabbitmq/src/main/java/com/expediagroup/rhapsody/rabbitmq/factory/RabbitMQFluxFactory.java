@@ -65,7 +65,7 @@ public class RabbitMQFluxFactory<T> {
 
     public Flux<RabbitMessage<T>> consumeAuto(String queue, AutoAcknowledgementConfig autoAcknowledgementConfig) {
         return consume(queue)
-            .compose(new AutoAcknowledgingTransformer<>(autoAcknowledgementConfig, flux -> flux.takeLast(1), AckableRabbitMessage::multipleAck))
+            .transformDeferred(new AutoAcknowledgingTransformer<>(autoAcknowledgementConfig, flux -> flux.takeLast(1), AckableRabbitMessage::multipleAck))
             .map(AckableRabbitMessage::get);
     }
 
