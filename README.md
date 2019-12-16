@@ -2,6 +2,7 @@
 
 # Rhapsody
 [![Build Status](https://travis-ci.com/ExpediaGroup/rhapsody.svg?branch=master)](https://travis-ci.com/ExpediaGroup/rhapsody)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 Rhapsody is an asynchronous message processing library that builds on the [Reactive Streams Specification](http://www.reactive-streams.org/) to deliver reusable functionalities under the following categories:
 - At-Least-Once Processing Guarantee
@@ -46,10 +47,10 @@ Rhapsody aims to provide observability in to Reactive Streams by leveraging exis
 Rhapsody is a Java library that requires at least JDK 1.8+ for building and integration.
 
 #### Building
-Rhapsody is built using maven
+Rhapsody is built using Maven. Installing Maven locally is optional as you can use the Maven Wrapper:
 
 ```$bash
-mvn clean verify
+./mvnw clean verify
 ```
 
 #### Usage
@@ -57,3 +58,9 @@ Check out the [Samples](samples) to see Rhapsody in action
 
 ## Contributing
 Please refer to [CONTRIBUTING](CONTRIBUTING.md) for information on how to contribute to Rhapsody
+
+## Legal
+
+This project is available under the [Apache 2.0 License](http://www.apache.org/licenses/LICENSE-2.0.html).
+
+Copyright 2019 Expedia, Inc.
