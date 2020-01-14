@@ -80,7 +80,7 @@
         <confluent.version>4.1.3</confluent.version>
         <jackson.version>2.9.8</jackson.version>
         <opentracing.version>0.31.0</opentracing.version>
-        <reactor.version>3.2.11.RELEASE</reactor.version>
+        <reactor.version>3.3.1.RELEASE</reactor.version>
         <slf4j.version>1.7.26</slf4j.version>
     </properties>
 
@@ -156,7 +156,7 @@
             <dependency>
                 <groupId>com.rabbitmq</groupId>
                 <artifactId>amqp-client</artifactId>
-                <version>5.5.1</version>
+                <version>5.7.3</version>
             </dependency>
             <dependency>
                 <groupId>io.confluent</groupId>
@@ -231,7 +231,7 @@
             <dependency>
                 <groupId>io.projectreactor.rabbitmq</groupId>
                 <artifactId>reactor-rabbitmq</artifactId>
-                <version>1.0.0.RELEASE</version>
+                <version>1.4.0.RELEASE</version>
             </dependency>
             <dependency>
                 <groupId>junit</groupId>
@@ -294,8 +294,9 @@
                     <excludes>
                         <exclude>**/pom.xml</exclude>
                         <exclude>**/README</exclude>
-                        <exclude>config/**</exclude>
+                        <exclude>**/resources/**</exclude>
                         <exclude>.mvn/**</exclude>
+                        <exclude>config/**</exclude>
                         <exclude>mvnw.cmd</exclude>
                     </excludes>
                 </configuration>
