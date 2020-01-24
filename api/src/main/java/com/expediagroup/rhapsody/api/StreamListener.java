@@ -17,7 +17,15 @@ package com.expediagroup.rhapsody.api;
 
 public interface StreamListener {
 
-    void stateChanged(StreamState state, String metadata);
+    // Will be removed. Override and use Object-typed metadata variant
+    @Deprecated
+    default void stateChanged(StreamState state, String metadata) {
+
+    }
+
+    default void stateChanged(StreamState state, Object metadata) {
+
+    }
 
     void next(Object object);
 }
