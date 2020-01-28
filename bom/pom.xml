@@ -30,6 +30,11 @@
             </dependency>
             <dependency>
                 <groupId>com.expediagroup</groupId>
+                <artifactId>rhapsody-dropwizard</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.expediagroup</groupId>
                 <artifactId>rhapsody-kafka</artifactId>
                 <version>${project.version}</version>
             </dependency>

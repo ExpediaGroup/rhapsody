@@ -68,6 +68,7 @@
         <module>reactor-kafka</module>
         <module>reactor-rabbitmq</module>
         <module>zookeeper-test</module>
+        <module>dropwizard</module>
     </modules>
 
     <properties>
@@ -109,6 +110,11 @@
             <dependency>
                 <groupId>com.expediagroup</groupId>
                 <artifactId>rhapsody-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.expediagroup</groupId>
+                <artifactId>rhapsody-dropwizard</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -187,11 +193,6 @@
                         <artifactId>slf4j-log4j12</artifactId>
                     </exclusion>
                 </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>io.dropwizard.metrics</groupId>
-                <artifactId>metrics-core</artifactId>
-                <version>3.2.2</version>
             </dependency>
             <dependency>
                 <groupId>io.micrometer</groupId>

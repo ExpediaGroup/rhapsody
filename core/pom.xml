@@ -60,13 +60,6 @@
             <artifactId>slf4j-api</artifactId>
         </dependency>
 
-        <!--Third Party Provided Dependencies-->
-        <dependency>
-            <groupId>io.dropwizard.metrics</groupId>
-            <artifactId>metrics-core</artifactId>
-            <scope>provided</scope>
-        </dependency>
-
         <!--Third Party Test Dependencies-->
         <dependency>
             <groupId>io.projectreactor</groupId>
