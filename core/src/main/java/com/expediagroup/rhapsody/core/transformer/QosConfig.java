@@ -13,19 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.expediagroup.rhapsody.api;
+package com.expediagroup.rhapsody.core.transformer;
 
-public interface StreamListener {
+public interface QosConfig {
 
-    // Will be removed. Override and use Object-typed metadata variant
-    @Deprecated
-    default void stateChanged(StreamState state, String metadata) {
-
+    default ActivityEnforcementConfig activityEnforcement(String name) {
+        return ActivityEnforcementConfig.Factory.disabled().create(name);
     }
 
-    default void stateChanged(StreamState state, Object metadata) {
-
+    default ResubscriptionConfig resubscription(String name) {
+        return ResubscriptionConfig.Factory.disabled().create(name);
     }
 
-    void next(Object object);
+    default RateLimitingConfig rateLimiting(String name) {
+        return RateLimitingConfig.Factory.disabled().create(name);
+    }
 }

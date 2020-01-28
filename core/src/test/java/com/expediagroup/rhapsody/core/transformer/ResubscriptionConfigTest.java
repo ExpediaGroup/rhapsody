@@ -30,5 +30,6 @@ public class ResubscriptionConfigTest {
         assertTrue(new ResubscriptionConfig(Duration.ofSeconds(0L)).isEnabled());
         assertFalse(new ResubscriptionConfig(Duration.ofSeconds(-1L)).isEnabled());
         assertFalse(new ResubscriptionConfig(Duration.parse("PT-1S")).isEnabled());
+        assertFalse(ResubscriptionConfig.Factory.disabled().create().isEnabled());
     }
 }

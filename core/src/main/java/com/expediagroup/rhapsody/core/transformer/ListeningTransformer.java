@@ -25,7 +25,7 @@ import com.expediagroup.rhapsody.api.StreamState;
 
 import reactor.core.publisher.Flux;
 
-public final class ListeningTransformer<T> implements Function<Publisher<T>, Flux<T>> {
+public final class ListeningTransformer<T> implements Function<Publisher<T>, Publisher<T>> {
 
     private final Collection<StreamListener> listeners;
 
@@ -34,12 +34,16 @@ public final class ListeningTransformer<T> implements Function<Publisher<T>, Flu
     }
 
     @Override
-    public Flux<T> apply(Publisher<T> publisher) {
+    public Publisher<T> apply(Publisher<T> publisher) {
+        return listeners.isEmpty() ? publisher : applyListening(publisher);
+    }
+
+    private Flux<T> applyListening(Publisher<T> publisher) {
         return Flux.from(publisher)
             .doOnNext(this::notifyListenersOfNext)
             .doOnSubscribe(subscription -> notifyListenersOfState(StreamState.SUBSCRIBED))
             .doOnCancel(() -> notifyListenersOfState(StreamState.CANCELED))
-            .doOnError(error -> notifyListenersOfState(StreamState.ERRORED, error.toString()))
+            .doOnError(error -> notifyListenersOfState(StreamState.ERRORED, error))
             .doOnComplete(() -> notifyListenersOfState(StreamState.COMPLETED));
     }
 
@@ -51,7 +55,7 @@ public final class ListeningTransformer<T> implements Function<Publisher<T>, Flu
         notifyListenersOfState(state, state.name());
     }
 
-    private void notifyListenersOfState(StreamState state, String metadata) {
+    private void notifyListenersOfState(StreamState state, Object metadata) {
         listeners.forEach(listener -> listener.stateChanged(state, metadata));
     }
 }

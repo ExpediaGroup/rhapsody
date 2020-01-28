@@ -57,6 +57,12 @@ public final class ResubscriptionConfig {
             super(ResubscriptionConfig.class);
         }
 
+        public static Factory disabled() {
+            Factory factory = new Factory();
+            factory.put("delay", "PT-1S");
+            return factory;
+        }
+
         @Override
         protected Map<String, Object> preProcessProperties(String specifier, Map<String, Object> properties) {
             Map<String, Object> preProcessedProperties = new HashMap<>(properties);
