@@ -32,19 +32,15 @@ public abstract class Stanza<C extends StanzaConfig> {
 
     private final AtomicReference<Disposable> disposableReference = new AtomicReference<>(EMPTY);
 
-    public final void start(C config) {
-        synchronized (disposableReference) {
-            if (!disposableReference.compareAndSet(EMPTY, STARTING) && !disposableReference.get().isDisposed()) {
-                throw new UnsupportedOperationException("Cannot start Stanza that is already starting/started");
-            }
-            disposableReference.set(startDisposable(config));
+    public final synchronized void start(C config) {
+        if (!disposableReference.compareAndSet(EMPTY, STARTING) && !disposableReference.get().isDisposed()) {
+            throw new UnsupportedOperationException("Cannot start Stanza that is already starting/started");
         }
+        disposableReference.set(startDisposable(config));
     }
 
-    public final void stop() {
-        synchronized (disposableReference) {
-            disposableReference.getAndSet(EMPTY).dispose();
-        }
+    public final synchronized void stop() {
+        disposableReference.getAndSet(EMPTY).dispose();
     }
 
     protected abstract Disposable startDisposable(C config);

@@ -16,8 +16,8 @@
 package com.expediagroup.rhapsody.core.stanza;
 
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 
 import org.junit.Test;
@@ -27,6 +27,7 @@ import com.expediagroup.rhapsody.util.Timing;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
 
@@ -47,14 +48,24 @@ public class StanzaTest {
 
     @Test
     public void stanzaCanBeStopped() {
-        List<Long> counts = new ArrayList<>();
+        List<Long> counts = new CopyOnWriteArrayList<>();
 
         Stanza<StanzaConfig> stanza = new SimpleStanza(counts::add);
         stanza.start(() -> "name");
 
-        Timing.pause(500);
+        Timing.pause(250);
 
         assertFalse(counts.isEmpty());
+
+        stanza.stop();
+
+        Timing.pause(250);
+
+        int capturedCount = counts.size();
+
+        Timing.pause(250);
+
+        assertEquals(capturedCount, counts.size());
     }
 
     private static final class SimpleStanza extends Stanza<StanzaConfig> {
