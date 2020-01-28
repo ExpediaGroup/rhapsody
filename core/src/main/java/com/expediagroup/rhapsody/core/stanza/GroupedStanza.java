@@ -20,6 +20,7 @@ import java.util.function.Function;
 import org.reactivestreams.Publisher;
 
 import com.expediagroup.rhapsody.api.SubscriberFactory;
+import com.expediagroup.rhapsody.core.transformer.ListeningTransformer;
 import com.expediagroup.rhapsody.core.transformer.MetricsConfig;
 import com.expediagroup.rhapsody.core.transformer.MetricsTransformer;
 import com.expediagroup.rhapsody.core.transformer.SchedulingTransformer;
@@ -56,6 +57,7 @@ public abstract class GroupedStanza<C extends StanzaConfig, U, V, R> extends Sta
         SubscriberFactory<R> subscriberFactory = buildSubscriberFactory(config);
 
         return Flux.from(buildGroupPublisher(config))
+            .transform(new ListeningTransformer<>(config.streamListeners()))
             .subscribe(groupedPublisher -> Flux.from(groupedPublisher)
                 .transform(inboundMetrics)
                 .transform(prescheduler)

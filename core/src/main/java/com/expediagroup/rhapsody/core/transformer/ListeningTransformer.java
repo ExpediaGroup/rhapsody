@@ -16,7 +16,7 @@
 package com.expediagroup.rhapsody.core.transformer;
 
 import java.util.Collection;
-import java.util.function.UnaryOperator;
+import java.util.function.Function;
 
 import org.reactivestreams.Publisher;
 
@@ -25,7 +25,7 @@ import com.expediagroup.rhapsody.api.StreamState;
 
 import reactor.core.publisher.Flux;
 
-public final class ListeningTransformer<T> implements UnaryOperator<Publisher<T>> {
+public final class ListeningTransformer<T> implements Function<Publisher<T>, Publisher<T>> {
 
     private final Collection<StreamListener> listeners;
 

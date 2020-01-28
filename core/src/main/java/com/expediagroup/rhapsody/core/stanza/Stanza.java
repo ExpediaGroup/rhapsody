@@ -16,17 +16,8 @@
 package com.expediagroup.rhapsody.core.stanza;
 
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.UnaryOperator;
-
-import org.reactivestreams.Publisher;
-
-import com.expediagroup.rhapsody.core.transformer.ActivityEnforcingTransformer;
-import com.expediagroup.rhapsody.core.transformer.ListeningTransformer;
-import com.expediagroup.rhapsody.core.transformer.RateLimitingTransformer;
-import com.expediagroup.rhapsody.core.transformer.ResubscribingTransformer;
 
 import reactor.core.Disposable;
-import reactor.core.publisher.Flux;
 
 /**
  * A Stanza is a stream process that can be started and stopped
@@ -57,12 +48,4 @@ public abstract class Stanza<C extends StanzaConfig> {
     }
 
     protected abstract Disposable startDisposable(C config);
-
-    protected <T> UnaryOperator<Publisher<T>> buildQosTransformer(C config) {
-        return publisher -> Flux.from(publisher)
-            .transform(new ListeningTransformer<>(config.streamListeners()))
-            .transformDeferred(new ActivityEnforcingTransformer<>(config.activityEnforcement()))
-            .transform(new ResubscribingTransformer<>(config.resubscription()))
-            .transform(new RateLimitingTransformer<>(config.rateLimiting()));
-    }
 }

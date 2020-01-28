@@ -20,10 +20,7 @@ import java.util.Collections;
 import java.util.Optional;
 
 import com.expediagroup.rhapsody.api.StreamListener;
-import com.expediagroup.rhapsody.core.transformer.ActivityEnforcementConfig;
 import com.expediagroup.rhapsody.core.transformer.MetricsConfig;
-import com.expediagroup.rhapsody.core.transformer.RateLimitingConfig;
-import com.expediagroup.rhapsody.core.transformer.ResubscriptionConfig;
 import com.expediagroup.rhapsody.core.transformer.SchedulerType;
 import com.expediagroup.rhapsody.core.transformer.SchedulingConfig;
 
@@ -32,24 +29,12 @@ import io.micrometer.core.instrument.Tags;
 
 public interface StanzaConfig {
 
-    default Optional<MeterRegistry> meterRegistry() {
-        return Optional.empty();
-    }
-
     default Collection<StreamListener> streamListeners() {
         return Collections.emptyList();
     }
 
-    default ActivityEnforcementConfig activityEnforcement() {
-        return ActivityEnforcementConfig.Factory.disabled().create(name());
-    }
-
-    default ResubscriptionConfig resubscription() {
-        return ResubscriptionConfig.Factory.disabled().create(name());
-    }
-
-    default RateLimitingConfig rateLimiting() {
-        return RateLimitingConfig.Factory.disabled().create(name());
+    default Optional<MeterRegistry> meterRegistry() {
+        return Optional.empty();
     }
 
     default MetricsConfig metrics() {
