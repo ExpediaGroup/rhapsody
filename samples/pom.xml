@@ -9,7 +9,16 @@
     </parent>
 
     <artifactId>rhapsody-samples</artifactId>
-    <packaging>jar</packaging>
+    <packaging>pom</packaging>
+
+    <modules>
+        <module>core</module>
+        <module>dropwizard</module>
+    </modules>
+
+    <properties>
+        <dropwizard.version>1.1.8</dropwizard.version>
+    </properties>
 
     <dependencyManagement>
         <dependencies>
@@ -21,92 +30,49 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+            <dependency>
+                <groupId>org.glassfish.jersey</groupId>
+                <artifactId>jersey-bom</artifactId>
+                <version>2.25.1</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!--Third Party Dependencies-->
+            <dependency>
+                <groupId>io.dropwizard</groupId>
+                <artifactId>dropwizard-core</artifactId>
+                <version>${dropwizard.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.dropwizard</groupId>
+                <artifactId>dropwizard-jersey</artifactId>
+                <version>${dropwizard.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>javax.validation</groupId>
+                <artifactId>validation-api</artifactId>
+                <version>2.0.1.Final</version>
+            </dependency>
+            <dependency>
+                <groupId>org.glassfish.hk2</groupId>
+                <artifactId>hk2-api</artifactId>
+                <version>2.5.0</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
-    <dependencies>
-        <!--Project Dependencies-->
-        <dependency>
-            <groupId>com.expediagroup</groupId>
-            <artifactId>rhapsody-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.expediagroup</groupId>
-            <artifactId>rhapsody-amqp-test</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.expediagroup</groupId>
-            <artifactId>rhapsody-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.expediagroup</groupId>
-            <artifactId>rhapsody-kafka</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.expediagroup</groupId>
-            <artifactId>rhapsody-kafka-test</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.expediagroup</groupId>
-            <artifactId>rhapsody-rabbitmq</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.expediagroup</groupId>
-            <artifactId>rhapsody-reactor-rabbitmq</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.expediagroup</groupId>
-            <artifactId>rhapsody-reactor-kafka</artifactId>
-        </dependency>
-
-        <!--Third Party Dependencies-->
-        <dependency>
-            <groupId>com.rabbitmq</groupId>
-            <artifactId>amqp-client</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.micrometer</groupId>
-            <artifactId>micrometer-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.opentracing</groupId>
-            <artifactId>opentracing-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.opentracing</groupId>
-            <artifactId>opentracing-mock</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.opentracing</groupId>
-            <artifactId>opentracing-util</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.projectreactor</groupId>
-            <artifactId>reactor-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.projectreactor.kafka</groupId>
-            <artifactId>reactor-kafka</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.kafka</groupId>
-            <artifactId>kafka-clients</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.reactivestreams</groupId>
-            <artifactId>reactive-streams</artifactId>
-        </dependency>
-    </dependencies>
-
     <build>
-        <plugins>
-            <plugin>
-                <groupId>org.sonatype.plugins</groupId>
-                <artifactId>nexus-staging-maven-plugin</artifactId>
-                <configuration>
-                    <skipNexusStagingDeployMojo>true</skipNexusStagingDeployMojo>
-                </configuration>
-            </plugin>
-        </plugins>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.sonatype.plugins</groupId>
+                    <artifactId>nexus-staging-maven-plugin</artifactId>
+                    <configuration>
+                        <skipNexusStagingDeployMojo>true</skipNexusStagingDeployMojo>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
     </build>
 </project>

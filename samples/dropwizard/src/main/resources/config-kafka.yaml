@@ -1,0 +1,15 @@
+server:
+  applicationConnectors:
+    - type: http
+  adminConnectors:
+    - type: http
+      port: 8081
+
+logging:
+  level: INFO
+  appenders:
+    - type: console
+
+kafka:
+  bootstrapServers: "localhost:9092"
+  topic: "sampleKafka"
