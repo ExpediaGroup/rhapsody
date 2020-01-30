@@ -53,7 +53,7 @@ public class SampleKafkaProcessingStanza extends Stanza<SampleKafkaProcessingSta
         if (number.longValue() <= 1) {
             return false;
         }
-        for (long i = 2; i < Math.sqrt(number.doubleValue()); i++) {
+        for (long i = 2; i <= Math.sqrt(number.doubleValue()); i++) {
             if (number.longValue() % i == 0) {
                 return false;
             }

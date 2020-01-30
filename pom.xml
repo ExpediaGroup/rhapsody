@@ -291,7 +291,7 @@
                 <artifactId>license-maven-plugin</artifactId>
                 <version>3.0</version>
                 <configuration>
-                    <header>assets/headers/LICENSE_HEADER</header>
+                    <header>${maven.multiModuleProjectDirectory}/assets/headers/LICENSE_HEADER</header>
                     <excludes>
                         <exclude>**/pom.xml</exclude>
                         <exclude>**/README</exclude>

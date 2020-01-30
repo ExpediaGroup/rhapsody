@@ -59,7 +59,6 @@
         </dependency>
 
         <!--Third Party Provided Dependencies-->
-        <!--Dropwizard dependencies have 'provided' scope to avoid transitive outdated dependencies-->
         <dependency>
             <groupId>io.dropwizard</groupId>
             <artifactId>dropwizard-core</artifactId>
