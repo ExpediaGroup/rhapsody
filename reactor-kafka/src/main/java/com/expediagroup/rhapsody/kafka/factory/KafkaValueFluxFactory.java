@@ -49,6 +49,10 @@ public class KafkaValueFluxFactory<V> extends KafkaFluxFactory<Object, V> {
         return receiveGroup(topics, receiverAcknowledgementStrategy, pregroup).map(this::extractAcknowledgeableNonNullValues);
     }
 
+    public Flux<Acknowledgeable<V>> receiveValue(Collection<String> topics) {
+        return receive(topics).transform(this::extractAcknowledgeableNonNullValues);
+    }
+
     public Flux<Acknowledgeable<V>> receiveValue(Collection<String> topics, ReceiverAcknowledgementStrategy receiverAcknowledgementStrategy) {
         return receive(topics, receiverAcknowledgementStrategy).transform(this::extractAcknowledgeableNonNullValues);
     }
