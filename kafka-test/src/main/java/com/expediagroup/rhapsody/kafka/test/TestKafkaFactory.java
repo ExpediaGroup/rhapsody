@@ -85,12 +85,12 @@ public class TestKafkaFactory {
 
     private static Map<String, Object> createKafkaBrokerConfig(URL zookeeperConnect, URL kafkaConnect) {
         Map<String, Object> kafkaBrokerConfig = new HashMap<>();
-        kafkaBrokerConfig.putIfAbsent(KafkaConfig.ZkConnectProp(), extractConnect(zookeeperConnect));
-        kafkaBrokerConfig.putIfAbsent(KafkaConfig.HostNameProp(), kafkaConnect.getHost());
-        kafkaBrokerConfig.putIfAbsent(KafkaConfig.PortProp(), kafkaConnect.getPort());
-        kafkaBrokerConfig.putIfAbsent(KafkaConfig.NumPartitionsProp(), 10);
-        kafkaBrokerConfig.putIfAbsent(KafkaConfig.OffsetsTopicReplicationFactorProp(), "1");
-        kafkaBrokerConfig.computeIfAbsent(KafkaConfig.LogDirProp(), key -> createLogDirectory().toString());
+        kafkaBrokerConfig.put(KafkaConfig.ZkConnectProp(), extractConnect(zookeeperConnect));
+        kafkaBrokerConfig.put(KafkaConfig.HostNameProp(), kafkaConnect.getHost());
+        kafkaBrokerConfig.put(KafkaConfig.PortProp(), kafkaConnect.getPort());
+        kafkaBrokerConfig.put(KafkaConfig.NumPartitionsProp(), 10);
+        kafkaBrokerConfig.put(KafkaConfig.OffsetsTopicReplicationFactorProp(), "1");
+        kafkaBrokerConfig.put(KafkaConfig.LogDirProp(), createLogDirectory().toString());
         return kafkaBrokerConfig;
     }
 

@@ -56,7 +56,7 @@ public abstract class StanzaBundle<T, C extends StanzaConfig> implements Configu
      */
     protected abstract C buildStanzaConfig(T configuration, Environment environment);
 
-    private class StanzaLifeCycleListener extends AbstractLifeCycle.AbstractLifeCycleListener {
+    private final class StanzaLifeCycleListener extends AbstractLifeCycle.AbstractLifeCycleListener {
 
         private final T configuration;
 
