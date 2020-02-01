@@ -17,10 +17,10 @@ The following Kafka [End to End to End](core/src/main/java/com/expediagroup/rhap
 [Kafka Arbitrary Parallelism](core/src/main/java/com/expediagroup/rhapsody/samples/parallelism/KafkaArbitraryParallelism.java) shows how to parallelize processing of Kafka Records and subsequent transformations by applying arbitrary grouping and assigning a Thread per group. This example (as well as the previous one) highly leverage built-in [Acknowledgement Queueing](../core/src/main/java/com/expediagroup/rhapsody/core/acknowledgement/AcknowledgementQueuingSubscriber.java) to guarantee in-order acknowledgement of Record offsets.
 
 ## Error Handling
-[Kafka Error Handling](core/src/main/java/com/expediagroup/rhapsody/samples/errorhandling/KafkaErrorHandling.java) shows how to apply resiliency to the processing of Kafka Records, both to possible upstream errors and downstream acknowledgement errors.
+[Kafka Error Handling](core/src/main/java/com/expediagroup/rhapsody/samples/errorhandling/KafkaErrorHandling.java) shows how to apply resiliency to the processing of Kafka Records, both to possible upstream errors and downstream Acknowledgement Errors.
 
 ## Deduplication
-[Kafka Deduplication](core/src/main/java/com/expediagroup/rhapsody/samples/deduplication/KafkaDeduplication.java) shows how to add message deduplication to the processing of a Kafka topic. This example maintains the incorporation of [Acknowledgement](../api/src/main/java/com/expediagroup/rhapsody/api/Acknowledgeable.java) propagation such as to maintain at-least-once processing guarantees
+[Kafka Deduplication](core/src/main/java/com/expediagroup/rhapsody/samples/deduplication/KafkaDeduplication.java) shows how to add deduplication to the processing of a Kafka topic. This example maintains the incorporation of [Acknowledgement](../api/src/main/java/com/expediagroup/rhapsody/api/Acknowledgeable.java) propagation such as to maintain at-least-once processing guarantees
 
 ## OpenTracing
 [Kafka OpenTracing](core/src/main/java/com/expediagroup/rhapsody/samples/opentracing/KafkaOpenTracing.java) shows how we can decorate the production and consumption of Kafka Records with OpenTracing context, as well as add logging/eventing to those contexts for notable transformations of Kafka Records
