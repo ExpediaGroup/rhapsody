@@ -7,7 +7,7 @@
     <version>0.2.1-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>${project.groupId}:${project.artifactId}</name>
-    <description>Reactive Streams framework with support for at-least-once processing guarantees</description>
+    <description>Reactive Streams framework with support for at-least-once processing</description>
     <url>https://github.com/ExpediaGroup/rhapsody</url>
 
     <organization>

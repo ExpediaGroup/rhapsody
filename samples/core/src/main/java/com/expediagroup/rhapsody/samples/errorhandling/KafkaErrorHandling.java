@@ -56,7 +56,7 @@ import reactor.core.scheduler.Schedulers;
  * 5) Reconsumption of records whose offsets have not yet been committed
  * This sample also illustrates how we ensure that any given Record's offset is not committed until
  * after all records in the same topic-partition that come before it have been acknowledged. This
- * is a core behavior of Rhapsody's at-least-once guarantees
+ * is a core behavior of Rhapsody's at-least-once guarantee
  */
 public class KafkaErrorHandling {
 
