@@ -47,7 +47,7 @@ import reactor.kafka.sender.SenderResult;
 /**
  * This sample shows how message consumption may be de-duped via {@link DeduplicatingTransformer}.
  * Note that this example continues to incorporate {@link Acknowledgeable acknowledgement}
- * propagation such that at-least-once guarantees are maintained in the face of "aggregation", or
+ * propagation such that at-least-once guarantee is maintained in the face of "aggregation", or
  * "many to one" processing transformations.
  */
 public class KafkaDeduplication {
