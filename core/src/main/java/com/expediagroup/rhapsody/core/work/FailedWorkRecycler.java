@@ -54,12 +54,12 @@ public abstract class FailedWorkRecycler<W extends Work, R> implements FailureCo
 
     protected void hookOnRecycle(W work, R recycled, Throwable error) {
         LOGGER.warn("Recycling failure of Work={}: subject={} recycled={} error={}",
-            work.getClass().getSimpleName(), work.workHeader().subject(), recycled, error.getMessage());
+            work.getClass().getSimpleName(), work.workHeader().subject(), recycled, error.getMessage(), error);
     }
 
     protected void hookOnDrop(W work, Throwable error) {
         LOGGER.warn("Dropping failed Work={}: subject={} error={}",
-            work.getClass().getSimpleName(), work.workHeader().subject(), error.getMessage());
+            work.getClass().getSimpleName(), work.workHeader().subject(), error.getMessage(), error);
     }
 
     protected abstract R recycle(W work, Throwable error);
