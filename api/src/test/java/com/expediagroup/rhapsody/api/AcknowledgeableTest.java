@@ -15,6 +15,7 @@
  */
 package com.expediagroup.rhapsody.api;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -204,6 +205,28 @@ public class AcknowledgeableTest {
 
         Acknowledgeable.<String>consuming(string -> {
             throw new IllegalArgumentException();
+        }, Acknowledgeable::acknowledge).accept(acknowledgeable);
+
+        assertFalse(acknowledgeable.isAcknowledged());
+        assertTrue(acknowledgeable.isNacknowledged());
+    }
+
+    @Test
+    public void acknowledgeablesCanBeThrowingConsumed() {
+        TestAcknowledgeable acknowledgeable = new TestAcknowledgeable("DATA");
+
+        Acknowledgeable.<String>throwingConsuming(System.out::println, Acknowledgeable::acknowledge).accept(acknowledgeable);
+
+        assertTrue(acknowledgeable.isAcknowledged());
+        assertFalse(acknowledgeable.isNacknowledged());
+    }
+
+    @Test
+    public void acknowledgeablesCanBeExceptionallyThrowingConsumed() {
+        TestAcknowledgeable acknowledgeable = new TestAcknowledgeable("DATA");
+
+        Acknowledgeable.<String>throwingConsuming(data -> {
+            throw new IOException();
         }, Acknowledgeable::acknowledge).accept(acknowledgeable);
 
         assertFalse(acknowledgeable.isAcknowledged());
