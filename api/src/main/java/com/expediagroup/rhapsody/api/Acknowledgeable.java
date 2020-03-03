@@ -144,6 +144,16 @@ public interface Acknowledgeable<T> extends Headed {
         };
     }
 
+    static <T> Consumer<Acknowledgeable<T>> throwingConsuming(Throwing.Consumer<? super T> consumer, Consumer<? super Acknowledgeable<T>> andThen) {
+        return acknowledgeable -> {
+            try {
+                acknowledgeable.throwingConsume(consumer, andThen);
+            } catch (Throwable error) {
+                acknowledgeable.nacknowledge(error);
+            }
+        };
+    }
+
     /**
      * Functional convenience method for safely wrapping the transformation of an Acknowledgeable
      * to some result type
@@ -269,6 +279,16 @@ public interface Acknowledgeable<T> extends Headed {
      * @param andThen  A Consumer to accept this Acknowledgeable after consumption of data item
      */
     void consume(Consumer<? super T> consumer, Consumer<? super Acknowledgeable<T>> andThen);
+
+    /**
+     * Consume this Acknowledgeable's Data item with the provided Throwing Consumer, followed by
+     * consumption of this Acknowledgeable (i.e. Acknowledgeable::acknowledge) upon non-exceptional
+     * completion of the data item consumer
+     *
+     * @param consumer The Throwing Consumer to accept this Acknowledgeable's Data item
+     * @param andThen  A Consumer to accept this Acknowledgeable after consumption of data item
+     */
+    void throwingConsume(Throwing.Consumer<? super T> consumer, Consumer<? super Acknowledgeable<T>> andThen) throws Throwable;
 
     /**
      * Method for allowing propagation of any metadata (like tracing context) from this
