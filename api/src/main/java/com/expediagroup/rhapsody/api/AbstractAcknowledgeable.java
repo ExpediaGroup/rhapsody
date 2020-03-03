@@ -24,6 +24,8 @@ import java.util.function.Predicate;
 
 import org.reactivestreams.Publisher;
 
+import com.expediagroup.rhapsody.util.Throwing;
+
 /**
  * Base functionality for Acknowledgeable implementations. Extensions need only implement
  * {@link Acknowledgeable#get() get},
@@ -81,6 +83,12 @@ public abstract class AbstractAcknowledgeable<T> implements Acknowledgeable<T> {
     @Override
     public void consume(Consumer<? super T> consumer, Consumer<? super Acknowledgeable<T>> andThen) {
         consumer.accept(get());
+        andThen.accept(this);
+    }
+
+    @Override
+    public void throwingConsume(Throwing.Consumer<? super T> consumer, Consumer<? super Acknowledgeable<T>> andThen) throws Throwable {
+        consumer.tryAccept(get());
         andThen.accept(this);
     }
 

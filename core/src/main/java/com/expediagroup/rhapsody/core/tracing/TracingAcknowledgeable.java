@@ -27,6 +27,7 @@ import java.util.function.Supplier;
 import com.expediagroup.rhapsody.api.AbstractAcknowledgeable;
 import com.expediagroup.rhapsody.api.Acknowledgeable;
 import com.expediagroup.rhapsody.api.Header;
+import com.expediagroup.rhapsody.util.Throwing;
 
 import io.opentracing.Scope;
 import io.opentracing.Span;
@@ -76,6 +77,20 @@ public abstract class TracingAcknowledgeable<T> extends AbstractAcknowledgeable<
             scope.span().log(formatEvent("start", "consume", consumer));
             consumer.accept(get());
             scope.span().log(formatEvent("finish", "consume", consumer));
+        }
+        // Run andThen Out-of-Scope since this instance strictly only traces operations on its
+        // contained value, and it may (in fact, likely) be the case that andThen finishes the
+        // Span around which the above Scope is wrapped. This guards against undefined behavior
+        // when a Scope's underlying Span is finished before invocation of Scope::close.
+        andThen.accept(this);
+    }
+
+    @Override
+    public void throwingConsume(Throwing.Consumer<? super T> consumer, Consumer<? super Acknowledgeable<T>> andThen) throws Throwable {
+        try (Scope scope = tracer.scopeManager().activate(span(), false)) {
+            scope.span().log(formatEvent("start", "consumeThrowing", consumer));
+            consumer.tryAccept(get());
+            scope.span().log(formatEvent("finish", "consumeThrowing", consumer));
         }
         // Run andThen Out-of-Scope since this instance strictly only traces operations on its
         // contained value, and it may (in fact, likely) be the case that andThen finishes the
