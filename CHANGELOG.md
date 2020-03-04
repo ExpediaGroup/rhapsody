@@ -10,7 +10,7 @@ rhapsody `0.2.1` is a beta release containing updates outlined below.
 
 ### Additions
 
-* Acknowledgeable now supports [consuming with Consumers that throw](#52)
+* Acknowledgeable now supports [consuming with Consumers that throw](../../pulls/#52)
 
 ## [0.2.0]
 
