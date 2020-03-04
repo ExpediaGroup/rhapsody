@@ -88,9 +88,9 @@ public abstract class TracingAcknowledgeable<T> extends AbstractAcknowledgeable<
     @Override
     public void throwingConsume(Throwing.Consumer<? super T> consumer, Consumer<? super Acknowledgeable<T>> andThen) throws Throwable {
         try (Scope scope = tracer.scopeManager().activate(span(), false)) {
-            scope.span().log(formatEvent("start", "consumeThrowing", consumer));
+            scope.span().log(formatEvent("start", "throwingConsume", consumer));
             consumer.tryAccept(get());
-            scope.span().log(formatEvent("finish", "consumeThrowing", consumer));
+            scope.span().log(formatEvent("finish", "throwingConsume", consumer));
         }
         // Run andThen Out-of-Scope since this instance strictly only traces operations on its
         // contained value, and it may (in fact, likely) be the case that andThen finishes the
