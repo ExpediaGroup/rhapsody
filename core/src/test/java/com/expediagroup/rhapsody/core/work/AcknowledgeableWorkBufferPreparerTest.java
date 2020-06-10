@@ -21,6 +21,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -31,49 +34,56 @@ import com.expediagroup.rhapsody.api.AbstractAcknowledgeable;
 import com.expediagroup.rhapsody.api.Acknowledgeable;
 import com.expediagroup.rhapsody.api.AcknowledgeableFactory;
 import com.expediagroup.rhapsody.api.ComposedAcknowledgeable;
-import com.expediagroup.rhapsody.api.WorkReducer;
 import com.expediagroup.rhapsody.api.WorkType;
 import com.expediagroup.rhapsody.test.TestFailureReference;
 import com.expediagroup.rhapsody.test.TestWork;
 import com.expediagroup.rhapsody.test.TestWorkHeader;
-import com.expediagroup.rhapsody.util.Translation;
+
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-public class AcknowledgeableWorkBufferTranslatorTest {
-
-    private final WorkReducer<TestWork> workReducer = new LatestWorkReducer<>();
+public class AcknowledgeableWorkBufferPreparerTest {
 
     private final TestFailureReference<TestWork> failureReference = new TestFailureReference<>();
 
     @Test
-    public void translatingEmptyBufferResultsInNothing() {
-        AcknowledgeableWorkBufferTranslator<TestWork> translator =
-            new AcknowledgeableWorkBufferTranslator<>(workReducer, TestWork::prepare, failureReference);
+    public void preparingEmptyBufferResultsInNothing() {
+        AcknowledgeableWorkBufferPreparer<TestWork> preparer = new AcknowledgeableWorkBufferPreparer<>(
+            new LatestWorkReducer<>(),
+            work -> Mono.just(work.prepare()),
+            (work, error) -> Mono.empty().doOnSubscribe(subscription -> failureReference.accept(work, error)));
 
-        Translation<List<Acknowledgeable<TestWork>>, Acknowledgeable<TestWork>> translation = translator.apply(Collections.emptyList());
+        List<Acknowledgeable<TestWork>> prepared = Flux.from(preparer.apply(Collections.emptyList())).collectList().block();
 
-        assertFalse(translation.hasResult());
+        assertNotNull(prepared);
+        assertTrue(prepared.isEmpty());
         assertNull(failureReference.get());
     }
 
     @Test
-    public void translatingUnpreparableWorkResultsInNoTranslationAndConsumedFailureOfLatest() {
-        AcknowledgeableWorkBufferTranslator<TestWork> translator =
-            new AcknowledgeableWorkBufferTranslator<>(workReducer, work -> { throw new IllegalArgumentException("Failed to prepare"); }, failureReference);
+    public void preparingUnpreparableWorkResultsInNoEmissionAndPublishedFailureOfLatest() {
+        AcknowledgeableWorkBufferPreparer<TestWork> preparer = new AcknowledgeableWorkBufferPreparer<>(
+            new LatestWorkReducer<>(),
+            work -> Mono.error(new IllegalArgumentException("Failed to prepare")),
+            (work, error) -> Mono.empty().doOnSubscribe(subscription -> failureReference.accept(work, error)));
 
         Instant now = Instant.now();
         AcknowledgeableTestWork acknowledgeableWork1 = new AcknowledgeableTestWork(TestWork.create(WorkType.COMMIT, "URL", now.toEpochMilli()));
         AcknowledgeableTestWork acknowledgeableWork2 = new AcknowledgeableTestWork(TestWork.create(WorkType.COMMIT, "URL", now.toEpochMilli() + 1));
         AcknowledgeableTestWork acknowledgeableWork3 = new AcknowledgeableTestWork(TestWork.create(WorkType.COMMIT, "URL", now.toEpochMilli() - 1));
 
-        Translation<List<Acknowledgeable<TestWork>>, Acknowledgeable<TestWork>> translation =
-            translator.apply(Arrays.asList(acknowledgeableWork3, acknowledgeableWork2, acknowledgeableWork1));
+        List<Acknowledgeable<TestWork>> buffer = Arrays.asList(acknowledgeableWork3, acknowledgeableWork2, acknowledgeableWork1);
+        List<Acknowledgeable<TestWork>> prepared = Flux.from(preparer.apply(buffer)).collectList().block();
 
-        assertFalse(translation.hasResult());
+        assertNotNull(prepared);
+        assertTrue(prepared.isEmpty());
         assertEquals(acknowledgeableWork2.get(), failureReference.get());
         assertTrue(acknowledgeableWork1.isAcknowledged());
         assertTrue(acknowledgeableWork2.isAcknowledged());
@@ -84,26 +94,31 @@ public class AcknowledgeableWorkBufferTranslatorTest {
     }
 
     @Test
-    public void translatingPreparableWorkResultsInSuccessfulTranslationAndNoFailure() {
-        AcknowledgeableWorkBufferTranslator<TestWork> translator =
-            new AcknowledgeableWorkBufferTranslator<>(workReducer, TestWork::prepare, failureReference);
+    public void preparingWorkResultsInSuccessfulEmissionAndNoFailure() {
+        AcknowledgeableWorkBufferPreparer<TestWork> preparer = new AcknowledgeableWorkBufferPreparer<>(
+            new LatestWorkReducer<>(),
+            work -> Mono.just(work.prepare()),
+            (work, error) -> Mono.empty().doOnSubscribe(subscription -> failureReference.accept(work, error)));
 
         TestWork work = TestWork.create(WorkType.COMMIT, "URL");
         AcknowledgeableTestWork acknowledgeableWork = new AcknowledgeableTestWork(work);
 
-        Translation<List<Acknowledgeable<TestWork>>, Acknowledgeable<TestWork>> translation = translator.apply(Collections.singletonList(acknowledgeableWork));
+        List<Acknowledgeable<TestWork>> prepared = Flux.from(preparer.apply(Collections.singletonList(acknowledgeableWork))).collectList().block();
 
-        assertTrue(translation.hasResult());
-        assertEquals(work, translation.getResult().get());
+        assertNotNull(prepared);
+        assertEquals(1, prepared.size());
+        assertEquals(work, prepared.get(0).get());
         assertNull(failureReference.get());
         assertFalse(acknowledgeableWork.isAcknowledged());
         assertFalse(acknowledgeableWork.getError().isPresent());
     }
 
     @Test
-    public void translatingMultiplePreparableWorkResultsInSuccessfulTranslationOfLatest() {
-        AcknowledgeableWorkBufferTranslator<TestWork> translator =
-            new AcknowledgeableWorkBufferTranslator<>(workReducer, TestWork::prepare, failureReference);
+    public void preparingMultipleWorkResultsInSuccessfulEmissionOfLatest() {
+        AcknowledgeableWorkBufferPreparer<TestWork> preparer = new AcknowledgeableWorkBufferPreparer<>(
+            new LatestWorkReducer<>(),
+            work -> Mono.just(work.prepare()),
+            (work, error) -> Mono.empty().doOnSubscribe(subscription -> failureReference.accept(work, error)));
 
         Instant now = Instant.now();
         TestWork work1 = TestWork.create(WorkType.COMMIT, "URL", now.toEpochMilli() - 1L);
@@ -114,12 +129,12 @@ public class AcknowledgeableWorkBufferTranslatorTest {
         AcknowledgeableTestWork acknowledgeableWork2 = new AcknowledgeableTestWork(work2);
         AcknowledgeableTestWork acknowledgeableWork3 = new AcknowledgeableTestWork(work3);
 
-        List<Acknowledgeable<TestWork>> acknowledgeableWorks = Arrays.asList(acknowledgeableWork1, acknowledgeableWork2, acknowledgeableWork3);
+        List<Acknowledgeable<TestWork>> buffer = Arrays.asList(acknowledgeableWork3, acknowledgeableWork2, acknowledgeableWork1);
+        List<Acknowledgeable<TestWork>> prepared = Flux.from(preparer.apply(buffer)).collectList().block();
 
-        Translation<List<Acknowledgeable<TestWork>>, Acknowledgeable<TestWork>> translation = translator.apply(acknowledgeableWorks);
-
-        assertTrue(translation.hasResult());
-        assertEquals(work3, translation.getResult().get());
+        assertNotNull(prepared);
+        assertEquals(1, prepared.size());
+        assertEquals(work3, prepared.get(0).get());
         assertNull(failureReference.get());
         assertFalse(acknowledgeableWork1.isAcknowledged());
         assertFalse(acknowledgeableWork2.isAcknowledged());
@@ -131,8 +146,10 @@ public class AcknowledgeableWorkBufferTranslatorTest {
 
     @Test
     public void successfullyHandlingFailureOfPreparationAcknowledges() {
-        AcknowledgeableWorkBufferTranslator<TestWork> translator =
-            new AcknowledgeableWorkBufferTranslator<>(workReducer, work -> { throw new IllegalArgumentException("Failed to prepare"); }, failureReference);
+        AcknowledgeableWorkBufferPreparer<TestWork> preparer = new AcknowledgeableWorkBufferPreparer<>(
+            new LatestWorkReducer<>(),
+            work -> Mono.error(new IllegalArgumentException("Failed to prepare")),
+            (work, error) -> Mono.empty().doOnSubscribe(subscription -> failureReference.accept(work, error)));
 
         Instant now = Instant.now();
         TestWork work1 = TestWork.create(WorkType.COMMIT, "URL", now.toEpochMilli() - 1L);
@@ -143,11 +160,11 @@ public class AcknowledgeableWorkBufferTranslatorTest {
         AcknowledgeableTestWork acknowledgeableWork2 = new AcknowledgeableTestWork(work2);
         AcknowledgeableTestWork acknowledgeableWork3 = new AcknowledgeableTestWork(work3);
 
-        List<Acknowledgeable<TestWork>> acknowledgeableWorks = Arrays.asList(acknowledgeableWork1, acknowledgeableWork2, acknowledgeableWork3);
+        List<Acknowledgeable<TestWork>> buffer = Arrays.asList(acknowledgeableWork3, acknowledgeableWork2, acknowledgeableWork1);
+        List<Acknowledgeable<TestWork>> prepared = Flux.from(preparer.apply(buffer)).collectList().block();
 
-        Translation<List<Acknowledgeable<TestWork>>, Acknowledgeable<TestWork>> translation = translator.apply(acknowledgeableWorks);
-
-        assertFalse(translation.hasResult());
+        assertNotNull(prepared);
+        assertTrue(prepared.isEmpty());
         assertEquals(work3, failureReference.get());
         assertTrue(acknowledgeableWork1.isAcknowledged());
         assertTrue(acknowledgeableWork2.isAcknowledged());
@@ -159,10 +176,10 @@ public class AcknowledgeableWorkBufferTranslatorTest {
 
     @Test
     public void failingToHandleFailureNacknowledges() {
-        AcknowledgeableWorkBufferTranslator<TestWork> translator =
-            new AcknowledgeableWorkBufferTranslator<>(workReducer,
-                work -> { throw new IllegalArgumentException("Failed to prepare"); },
-                (testWork, throwable) -> { throw new IllegalArgumentException("Failed to fail"); });
+        AcknowledgeableWorkBufferPreparer<TestWork> preparer = new AcknowledgeableWorkBufferPreparer<>(
+            new LatestWorkReducer<>(),
+            work -> Mono.error(new IllegalArgumentException("Failed to prepare")),
+            (work, error) -> Mono.error(new IllegalArgumentException("Failed to fail")));
 
         Instant now = Instant.now();
         TestWork work1 = TestWork.create(WorkType.COMMIT, "URL", now.toEpochMilli() - 1L);
@@ -173,11 +190,11 @@ public class AcknowledgeableWorkBufferTranslatorTest {
         AcknowledgeableTestWork acknowledgeableWork2 = new AcknowledgeableTestWork(work2);
         AcknowledgeableTestWork acknowledgeableWork3 = new AcknowledgeableTestWork(work3);
 
-        List<Acknowledgeable<TestWork>> acknowledgeableWorks = Arrays.asList(acknowledgeableWork1, acknowledgeableWork2, acknowledgeableWork3);
+        List<Acknowledgeable<TestWork>> buffer = Arrays.asList(acknowledgeableWork3, acknowledgeableWork2, acknowledgeableWork1);
+        List<Acknowledgeable<TestWork>> prepared = Flux.from(preparer.apply(buffer)).collectList().block();
 
-        Translation<List<Acknowledgeable<TestWork>>, Acknowledgeable<TestWork>> translation = translator.apply(acknowledgeableWorks);
-
-        assertFalse(translation.hasResult());
+        assertNotNull(prepared);
+        assertTrue(prepared.isEmpty());
         assertFalse(acknowledgeableWork1.isAcknowledged());
         assertFalse(acknowledgeableWork2.isAcknowledged());
         assertFalse(acknowledgeableWork3.isAcknowledged());
@@ -187,16 +204,48 @@ public class AcknowledgeableWorkBufferTranslatorTest {
     }
 
     @Test
-    public void canceledWorkIsNotTranslated() {
-        AcknowledgeableWorkBufferTranslator<TestWork> translator =
-            new AcknowledgeableWorkBufferTranslator<>(workReducer, TestWork::prepare, failureReference);
+    public void preparationFailureDoesNotAcknowledgeOrNacknowledgeUntilFailureIsHandled() throws Exception {
+        CompletableFuture<Void> proceedWithFailure = new CompletableFuture<>();
+        CompletableFuture<Void> failureSubscribed = new CompletableFuture<>();
+        AcknowledgeableWorkBufferPreparer<TestWork> preparer = new AcknowledgeableWorkBufferPreparer<>(
+            new LatestWorkReducer<>(),
+            work -> Mono.error(new IllegalArgumentException("Failed to prepare")),
+            (work, error) -> Mono.fromFuture(proceedWithFailure).doOnSubscribe(subscription -> failureSubscribed.complete(null)));
+
+        AcknowledgeableTestWork acknowledgeableWork = new AcknowledgeableTestWork(TestWork.create(WorkType.INTENT, "URL"));
+
+        Future<Void> emitted = Flux.from(preparer.apply(Collections.singletonList(acknowledgeableWork)))
+            .subscribeOn(Schedulers.elastic())
+            .then()
+            .toFuture();
+
+        failureSubscribed.get(10, TimeUnit.SECONDS);
+
+        assertFalse(acknowledgeableWork.isAcknowledged());
+        assertFalse(acknowledgeableWork.getError().isPresent());
+        assertFalse(emitted.isDone());
+
+        proceedWithFailure.complete(null);
+        emitted.get(10, TimeUnit.SECONDS);
+
+        assertTrue(acknowledgeableWork.isAcknowledged());
+        assertFalse(acknowledgeableWork.getError().isPresent());
+        assertTrue(emitted.isDone());
+    }
+
+    @Test
+    public void canceledWorkIsNotPrepared() {
+        AcknowledgeableWorkBufferPreparer<TestWork> preparer = new AcknowledgeableWorkBufferPreparer<>(
+            new LatestWorkReducer<>(),
+            work -> Mono.just(work.prepare()),
+            (work, error) -> Mono.empty().doOnSubscribe(subscription -> failureReference.accept(work, error)));
 
         AcknowledgeableTestWork acknowledgeableWork = new AcknowledgeableTestWork(TestWork.create(WorkType.CANCEL, "URL"));
 
-        Translation<List<Acknowledgeable<TestWork>>, Acknowledgeable<TestWork>> translation =
-            translator.apply(Collections.singletonList(acknowledgeableWork));
+        List<Acknowledgeable<TestWork>> prepared = Flux.from(preparer.apply(Collections.singletonList(acknowledgeableWork))).collectList().block();
 
-        assertFalse(translation.hasResult());
+        assertNotNull(prepared);
+        assertTrue(prepared.isEmpty());
         assertNull(failureReference.get());
         assertFalse(acknowledgeableWork.getError().isPresent());
         assertEquals(1, acknowledgeableWork.getAcknowledgementCount());
@@ -204,37 +253,42 @@ public class AcknowledgeableWorkBufferTranslatorTest {
 
     @Test
     public void canceledWorkIsNotFailed() {
-        AcknowledgeableWorkBufferTranslator<TestWork> translator =
-            new AcknowledgeableWorkBufferTranslator<>(workReducer, work -> { throw new IllegalArgumentException("Failed to prepare"); }, failureReference);
+        AcknowledgeableWorkBufferPreparer<TestWork> preparer = new AcknowledgeableWorkBufferPreparer<>(
+            new LatestWorkReducer<>(),
+            work -> Mono.error(new IllegalArgumentException("Failed to prepare")),
+            (work, error) -> Mono.empty().doOnSubscribe(subscription -> failureReference.accept(work, error)));
 
         Instant now = Instant.now();
         AcknowledgeableTestWork acknowledgeableWork1 = new AcknowledgeableTestWork(TestWork.create(WorkType.INTENT, "URL", now.toEpochMilli() - 1L));
         AcknowledgeableTestWork acknowledgeableWork2 = new AcknowledgeableTestWork(TestWork.create(WorkType.CANCEL, "URL", now.toEpochMilli()));
 
-        Translation<List<Acknowledgeable<TestWork>>, Acknowledgeable<TestWork>> translation =
-            translator.apply(Arrays.asList(acknowledgeableWork1, acknowledgeableWork2));
+        List<Acknowledgeable<TestWork>> buffer = Arrays.asList(acknowledgeableWork1, acknowledgeableWork2);
+        List<Acknowledgeable<TestWork>> prepared = Flux.from(preparer.apply(buffer)).collectList().block();
 
-        assertFalse(translation.hasResult());
+        assertNotNull(prepared);
+        assertTrue(prepared.isEmpty());
         assertEquals(acknowledgeableWork1.get(), failureReference.get());
         assertEquals(1, acknowledgeableWork1.getAcknowledgementCount());
         assertEquals(1, acknowledgeableWork2.getAcknowledgementCount());
     }
 
     @Test
-    public void nonCommittedCanceledWorkWithSameMarkersAreNotTranslated() {
+    public void nonCommittedCanceledWorkWithSameMarkersAreNotEmitted() {
+        AcknowledgeableWorkBufferPreparer<TestWork> preparer = new AcknowledgeableWorkBufferPreparer<>(
+            new LatestWorkReducer<>(),
+            work -> Mono.just(work.prepare()),
+            (work, error) -> Mono.empty().doOnSubscribe(subscription -> failureReference.accept(work, error)));
+
         String marker = UUID.randomUUID().toString();
-
-        AcknowledgeableWorkBufferTranslator<TestWork> translator =
-            new AcknowledgeableWorkBufferTranslator<>(workReducer, TestWork::prepare, failureReference);
-
         AcknowledgeableTestWork acknowledgeableWork1 = new AcknowledgeableTestWork(TestWork.create(TestWorkHeader.incept(WorkType.CANCEL, marker, "URL")));
         AcknowledgeableTestWork acknowledgeableWork2 = new AcknowledgeableTestWork(TestWork.create(TestWorkHeader.incept(WorkType.INTENT, marker, "URL")));
         AcknowledgeableTestWork acknowledgeableWork3 = new AcknowledgeableTestWork(TestWork.create(TestWorkHeader.incept(WorkType.RETRY, marker, "URL")));
 
-        Translation<List<Acknowledgeable<TestWork>>, Acknowledgeable<TestWork>> translation =
-            translator.apply(Arrays.asList(acknowledgeableWork1, acknowledgeableWork2, acknowledgeableWork3));
+        List<Acknowledgeable<TestWork>> buffer = Arrays.asList(acknowledgeableWork3, acknowledgeableWork2, acknowledgeableWork1);
+        List<Acknowledgeable<TestWork>> prepared = Flux.from(preparer.apply(buffer)).collectList().block();
 
-        assertFalse(translation.hasResult());
+        assertNotNull(prepared);
+        assertTrue(prepared.isEmpty());
         assertNull(failureReference.get());
         assertEquals(1, acknowledgeableWork1.getAcknowledgementCount());
         assertEquals(1, acknowledgeableWork2.getAcknowledgementCount());
@@ -242,17 +296,21 @@ public class AcknowledgeableWorkBufferTranslatorTest {
     }
 
     @Test
-    public void nonCanceledWorkWithDifferentMarkerIsTranslated() {
-        AcknowledgeableWorkBufferTranslator<TestWork> translator =
-            new AcknowledgeableWorkBufferTranslator<>(workReducer, TestWork::prepare, failureReference);
+    public void nonCanceledWorkWithDifferentMarkerIsEmitted() {
+        AcknowledgeableWorkBufferPreparer<TestWork> preparer = new AcknowledgeableWorkBufferPreparer<>(
+            new LatestWorkReducer<>(),
+            work -> Mono.just(work.prepare()),
+            (work, error) -> Mono.empty().doOnSubscribe(subscription -> failureReference.accept(work, error)));
 
         AcknowledgeableTestWork acknowledgeableWork1 = new AcknowledgeableTestWork(TestWork.create(WorkType.CANCEL, "URL"));
         AcknowledgeableTestWork acknowledgeableWork2 = new AcknowledgeableTestWork(TestWork.create(WorkType.INTENT, "URL"));
 
-        Translation<List<Acknowledgeable<TestWork>>, Acknowledgeable<TestWork>> translation = translator.apply(Arrays.asList(acknowledgeableWork1, acknowledgeableWork2));
+        List<Acknowledgeable<TestWork>> buffer = Arrays.asList(acknowledgeableWork2, acknowledgeableWork1);
+        List<Acknowledgeable<TestWork>> prepared = Flux.from(preparer.apply(buffer)).collectList().block();
 
-        assertTrue(translation.hasResult());
-        assertEquals(acknowledgeableWork2.get(), translation.getResult().get());
+        assertNotNull(prepared);
+        assertEquals(1, prepared.size());
+        assertEquals(acknowledgeableWork2.get(), prepared.get(0).get());
         assertNull(failureReference.get());
         assertTrue(acknowledgeableWork1.isAcknowledged());
         assertFalse(acknowledgeableWork2.isAcknowledged());
@@ -260,22 +318,26 @@ public class AcknowledgeableWorkBufferTranslatorTest {
     }
 
     @Test
-    public void committedButCanceledWorkIsTranslated() {
-        AcknowledgeableWorkBufferTranslator<TestWork> translator =
-            new AcknowledgeableWorkBufferTranslator<>(workReducer, TestWork::prepare, failureReference);
+    public void committedButCanceledWorkIsEmitted() {
+        AcknowledgeableWorkBufferPreparer<TestWork> preparer = new AcknowledgeableWorkBufferPreparer<>(
+            new LatestWorkReducer<>(),
+            work -> Mono.just(work.prepare()),
+            (work, error) -> Mono.empty().doOnSubscribe(subscription -> failureReference.accept(work, error)));
 
         String marker = UUID.randomUUID().toString();
         AcknowledgeableTestWork acknowledgeableWork1 = new AcknowledgeableTestWork(TestWork.create(TestWorkHeader.incept(WorkType.CANCEL, marker, "URL")));
         AcknowledgeableTestWork acknowledgeableWork2 = new AcknowledgeableTestWork(TestWork.create(TestWorkHeader.incept(WorkType.COMMIT, marker, "URL")));
 
-        Translation<List<Acknowledgeable<TestWork>>, Acknowledgeable<TestWork>> translation =
-            translator.apply(Arrays.asList(acknowledgeableWork1, acknowledgeableWork2));
+        List<Acknowledgeable<TestWork>> buffer = Arrays.asList(acknowledgeableWork2, acknowledgeableWork1);
+        List<Acknowledgeable<TestWork>> prepared = Flux.from(preparer.apply(buffer)).collectList().block();
 
-        assertTrue(translation.hasResult());
-        assertEquals(acknowledgeableWork2.get(), translation.getResult().get());
+        assertNotNull(prepared);
+        assertEquals(1, prepared.size());
+        assertEquals(acknowledgeableWork2.get(), prepared.get(0).get());
         assertNull(failureReference.get());
         assertTrue(acknowledgeableWork1.isAcknowledged());
         assertFalse(acknowledgeableWork2.isAcknowledged());
+        assertFalse(acknowledgeableWork2.getError().isPresent());
     }
 
     private static final class AcknowledgeableTestWork extends AbstractAcknowledgeable<TestWork> {

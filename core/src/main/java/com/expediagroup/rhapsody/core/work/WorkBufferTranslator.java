@@ -46,7 +46,7 @@ public final class WorkBufferTranslator<W extends Work> implements Translator<Li
 
     @Override
     public Translation<List<W>, W> apply(List<W> buffer) {
-        List<W> nonCanceledBuffer = collectNonCanceled(buffer);
+        List<W> nonCanceledBuffer = WorkBuffers.collectNonCanceled(buffer);
         try {
             return tryTranslate(nonCanceledBuffer)
                 .map(result -> Translation.withResult(buffer, result))
@@ -55,20 +55,6 @@ public final class WorkBufferTranslator<W extends Work> implements Translator<Li
             handleNonCanceledTranslationError(nonCanceledBuffer, error);
             return Translation.noResult(buffer);
         }
-    }
-
-    private List<W> collectNonCanceled(List<W> buffer) {
-        Map<String, WorkType> relevantWorkTypesByMarker = buffer.stream()
-            .map(Work::workHeader)
-            .collect(Collectors.groupingBy(WorkHeader::marker, WorkType.highestRelevanceReducing(WorkHeader::type)));
-
-        return buffer.stream()
-            .filter(work -> isNonCanceled(relevantWorkTypesByMarker, work.workHeader()))
-            .collect(Collectors.toList());
-    }
-
-    private boolean isNonCanceled(Map<String, WorkType> relevantWorkTypesByMarker, WorkHeader header) {
-        return relevantWorkTypesByMarker.get(header.marker()) != WorkType.CANCEL && header.type() != WorkType.CANCEL;
     }
 
     private Optional<W> tryTranslate(List<W> nonCanceledBuffer) {

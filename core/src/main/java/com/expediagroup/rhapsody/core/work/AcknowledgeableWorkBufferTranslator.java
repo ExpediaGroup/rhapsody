@@ -47,7 +47,7 @@ public class AcknowledgeableWorkBufferTranslator<W extends Work> implements Tran
 
     @Override
     public Translation<List<Acknowledgeable<W>>, Acknowledgeable<W>> apply(List<Acknowledgeable<W>> buffer) {
-        List<Acknowledgeable<W>> nonCanceledBuffer = collectNonCanceled(buffer);
+        List<Acknowledgeable<W>> nonCanceledBuffer = WorkBuffers.collectNonCanceledAcknowledgeable(buffer, Acknowledgeable::acknowledge);
         try {
             return tryTranslate(nonCanceledBuffer)
                 .map(result -> Translation.withResult(buffer, result))
@@ -56,20 +56,6 @@ public class AcknowledgeableWorkBufferTranslator<W extends Work> implements Tran
             handleNonCanceledTranslationError(nonCanceledBuffer, error);
             return Translation.noResult(buffer);
         }
-    }
-
-    private List<Acknowledgeable<W>> collectNonCanceled(List<Acknowledgeable<W>> buffer) {
-        Map<String, WorkType> relevantWorkTypesByMarker = buffer.stream()
-            .map(acknowledgeableWork -> acknowledgeableWork.get().workHeader())
-            .collect(Collectors.groupingBy(WorkHeader::marker, WorkType.highestRelevanceReducing(WorkHeader::type)));
-
-        return buffer.stream()
-            .filter(Acknowledgeable.filtering(work -> isNonCanceled(relevantWorkTypesByMarker, work.workHeader()), Acknowledgeable::acknowledge))
-            .collect(Collectors.toList());
-    }
-
-    private boolean isNonCanceled(Map<String, WorkType> relevantWorkTypesByMarker, WorkHeader header) {
-        return relevantWorkTypesByMarker.get(header.marker()) != WorkType.CANCEL && header.type() != WorkType.CANCEL;
     }
 
     private Optional<Acknowledgeable<W>> tryTranslate(List<Acknowledgeable<W>> nonCanceledBuffer) {

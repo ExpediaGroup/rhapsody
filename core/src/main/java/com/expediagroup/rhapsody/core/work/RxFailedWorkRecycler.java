@@ -15,35 +15,39 @@
  */
 package com.expediagroup.rhapsody.core.work;
 
-import java.util.function.Consumer;
+import java.util.function.Function;
 
+import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.expediagroup.rhapsody.api.FailureConsumer;
+import com.expediagroup.rhapsody.api.RxFailureConsumer;
 import com.expediagroup.rhapsody.api.Work;
 
-public abstract class FailedWorkRecycler<W extends Work, R> implements FailureConsumer<W> {
+import reactor.core.publisher.Mono;
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(FailedWorkRecycler.class);
+public abstract class RxFailedWorkRecycler<W extends Work, R> implements RxFailureConsumer<W> {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(RxFailedWorkRecycler.class);
 
     private final WorkRecycleConfig config;
 
-    private final Consumer<? super R> recycleConsumer;
+    private final Function<? super R, ? extends Publisher<?>> recyclePublisher;
 
-    public FailedWorkRecycler(WorkRecycleConfig config, Consumer<? super R> recycleConsumer) {
+    public RxFailedWorkRecycler(WorkRecycleConfig config, Function<? super R, ? extends Publisher<?>> recyclePublisher) {
         this.config = config;
-        this.recycleConsumer = recycleConsumer;
+        this.recyclePublisher = recyclePublisher;
     }
 
     @Override
-    public void accept(W work, Throwable error) {
+    public Publisher<?> apply(W work, Throwable error) {
         if (isRecyclable(work, error)) {
-            R recycled = recycle(work, error);
-            hookOnRecycle(work, recycled, error);
-            recycleConsumer.accept(recycled);
+            return Mono.just(work)
+                .map(toRecycle -> recycle(toRecycle, error))
+                .doOnNext(recycled -> hookOnRecycle(work, recycled, error))
+                .flatMapMany(recyclePublisher);
         } else {
-            hookOnDrop(work, error);
+            return Mono.empty().doOnSubscribe(subscription -> hookOnDrop(work, error));
         }
     }
 
