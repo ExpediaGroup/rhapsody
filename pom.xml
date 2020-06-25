@@ -297,7 +297,7 @@
                         <exclude>**/README</exclude>
                         <exclude>**/resources/**</exclude>
                         <exclude>.mvn/**</exclude>
-                        <exclude>config/**</exclude>
+                        <exclude>assets/**</exclude>
                         <exclude>mvnw.cmd</exclude>
                     </excludes>
                 </configuration>

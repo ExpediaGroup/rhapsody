@@ -7,12 +7,12 @@ cache:
     - "~/.m2/repository"
 deploy:
   - provider: script
-    script: config/travis/deploy.sh
+    script: assets/travis/deploy.sh
     skip_cleanup: true
     on:
       branch: master
   - provider: script
-    script: config/travis/deploy.sh
+    script: assets/travis/deploy.sh
     skip_cleanup: true
     on:
       tags: true
