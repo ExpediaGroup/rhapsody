@@ -17,8 +17,9 @@ package com.exepdiagroup.rhapsody.samples.dropwizard.kafka;
 
 import java.util.function.Consumer;
 
-import org.glassfish.hk2.api.TypeLiteral;
-import org.glassfish.hk2.utilities.binding.AbstractBinder;
+import javax.ws.rs.core.GenericType;
+
+import org.glassfish.jersey.internal.inject.AbstractBinder;
 
 import com.expediagroup.rhapsody.dropwizard.metrics.DefaultDropwizardMeterRegistry;
 import com.expediagroup.rhapsody.kafka.test.TestKafkaFactory;
@@ -57,7 +58,7 @@ public class SampleKafkaApplication extends Application<SampleKafkaApplicationCo
             @Override
             protected void configure() {
                 // Bind a Consumer that we'll access in Bundle(s)
-                this.<Consumer<String>>bind(System.out::println).to(new TypeLiteral<Consumer<String>>() {});
+                this.<Consumer<String>>bind(System.out::println).to(new GenericType<Consumer<String>>() {});
             }
         });
     }

@@ -18,7 +18,8 @@ package com.exepdiagroup.rhapsody.samples.dropwizard.kafka;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import org.glassfish.hk2.api.TypeLiteral;
+import javax.ws.rs.core.GenericType;
+
 import org.glassfish.jersey.servlet.ServletContainer;
 
 import com.expediagroup.rhapsody.core.stanza.Stanza;
@@ -46,8 +47,8 @@ public class SampleKafkaProcessingStanzaBundle<T> extends StanzaBundle<T, Sample
         // For the sake of showing possibilities, we'll look for a Consumer resource in the environment
         Consumer<String> consumer = ServletContainer.class.cast(environment.getJerseyServletContainer())
             .getApplicationHandler()
-            .getServiceLocator()
-            .getService(new TypeLiteral<Consumer<String>>() {}.getType());
+            .getInjectionManager()
+            .getInstance(new GenericType<Consumer<String>>() {}.getType());
 
         return new SampleKafkaProcessingStanzaConfig(config.getBootstrapServers(), config.getTopic(), consumer);
     }
