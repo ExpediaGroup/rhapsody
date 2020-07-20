@@ -17,7 +17,7 @@
     </modules>
 
     <properties>
-        <dropwizard.version>1.1.8</dropwizard.version>
+        <dropwizard.version>2.0.8</dropwizard.version>
     </properties>
 
     <dependencyManagement>
@@ -26,14 +26,14 @@
             <dependency>
                 <groupId>org.eclipse.jetty</groupId>
                 <artifactId>jetty-bom</artifactId>
-                <version>9.4.14.v20181114</version>
+                <version>9.4.28.v20200408</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
             <dependency>
                 <groupId>org.glassfish.jersey</groupId>
                 <artifactId>jersey-bom</artifactId>
-                <version>2.25.1</version>
+                <version>2.31</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -50,14 +50,14 @@
                 <version>${dropwizard.version}</version>
             </dependency>
             <dependency>
-                <groupId>javax.validation</groupId>
-                <artifactId>validation-api</artifactId>
-                <version>2.0.1.Final</version>
+                <groupId>jakarta.validation</groupId>
+                <artifactId>jakarta.validation-api</artifactId>
+                <version>2.0.2</version>
             </dependency>
             <dependency>
-                <groupId>org.glassfish.hk2</groupId>
-                <artifactId>hk2-api</artifactId>
-                <version>2.6.1</version>
+                <groupId>jakarta.ws.rs</groupId>
+                <artifactId>jakarta.ws.rs-api</artifactId>
+                <version>2.1.6</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

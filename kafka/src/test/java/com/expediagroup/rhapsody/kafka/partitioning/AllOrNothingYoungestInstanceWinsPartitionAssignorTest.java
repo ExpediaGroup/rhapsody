@@ -17,15 +17,19 @@ package com.expediagroup.rhapsody.kafka.partitioning;
 
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import org.apache.kafka.clients.consumer.internals.AbstractPartitionAssignor;
 import org.apache.kafka.clients.consumer.internals.PartitionAssignor;
-import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.Cluster;
+import org.apache.kafka.common.PartitionInfo;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -41,108 +45,117 @@ public class AllOrNothingYoungestInstanceWinsPartitionAssignorTest {
 
     private static final String TOPIC_2 = "topic-2";
 
+    private static final Collection<PartitionInfo> PARTITION_INFOS = Stream.of(
+        IntStream.range(0, 10).mapToObj(partition -> new PartitionInfo(TOPIC_1, partition, null, null, null)),
+        IntStream.range(0, 20).mapToObj(partition -> new PartitionInfo(TOPIC_2, partition, null, null, null)))
+        .flatMap(Function.identity())
+        .collect(Collectors.toList());
+
+    private static final Cluster CLUSTER =
+        new Cluster("clusterId", Collections.emptyList(), PARTITION_INFOS, Collections.emptySet(), Collections.emptySet());
+
     private final AbstractPartitionAssignor partitionAssignor = new AllOrNothingYoungestInstanceWinsPartitionAssignor();
 
     @Test
     public void emptySubscriptionsResultInNoAssignments() {
-        Map<String, List<TopicPartition>> result = partitionAssignor.assign(
-            Collections.singletonMap(TOPIC_1, 10),
-            Collections.singletonMap(MEMBER_ID_1, new PartitionAssignor.Subscription(Collections.emptyList())));
+        Map<String, PartitionAssignor.Subscription> subscriptionsByMemberId =
+            Collections.singletonMap(MEMBER_ID_1, new PartitionAssignor.Subscription(Collections.emptyList()));
+
+        Map<String, PartitionAssignor.Assignment> result =
+            partitionAssignor.assign(CLUSTER, subscriptionsByMemberId);
 
         assertEquals(1, result.size());
-        assertTrue(result.get(MEMBER_ID_1).isEmpty());
-    }
-
-    @Test
-    public void zeroPartitionsResultInNoAssignments() {
-        Map<String, List<TopicPartition>> result = partitionAssignor.assign(
-            Collections.singletonMap(TOPIC_1, 0),
-            Collections.singletonMap(MEMBER_ID_1, new PartitionAssignor.Subscription(Collections.singletonList(TOPIC_1))));
-
-        assertEquals(1, result.size());
-        assertTrue(result.get(MEMBER_ID_1).isEmpty());
+        assertTrue(result.get(MEMBER_ID_1).partitions().isEmpty());
     }
 
     @Test
     public void singleTopicIsAssignedToSingleMember() {
-        Map<String, List<TopicPartition>> result = partitionAssignor.assign(
-            Collections.singletonMap(TOPIC_1, 10),
-            Collections.singletonMap(MEMBER_ID_1, new PartitionAssignor.Subscription(Collections.singletonList(TOPIC_1))));
+        PartitionAssignor.Subscription subscription = partitionAssignor.subscription(Collections.singleton(TOPIC_1));
+
+        Map<String, PartitionAssignor.Subscription> subscriptionsByMemberId =
+            Collections.singletonMap(MEMBER_ID_1, subscription);
+
+        Map<String, PartitionAssignor.Assignment> result =
+            partitionAssignor.assign(CLUSTER, subscriptionsByMemberId);
 
         assertEquals(1, result.size());
-        assertEquals(10, result.get(MEMBER_ID_1).size());
+        assertEquals(10, result.get(MEMBER_ID_1).partitions().size());
     }
 
     @Test
     public void mutuallyExclusiveSubscriptionsAreAssignedToMembers() {
-        Map<String, Integer> partitionCountsByTopic = new HashMap<>();
-        partitionCountsByTopic.put(TOPIC_1, 10);
-        partitionCountsByTopic.put(TOPIC_2, 20);
+        PartitionAssignor.Subscription subscription1 = partitionAssignor.subscription(Collections.singleton(TOPIC_1));
+        PartitionAssignor.Subscription subscription2 = partitionAssignor.subscription(Collections.singleton(TOPIC_2));
 
         Map<String, PartitionAssignor.Subscription> subscriptionsByMemberId = new LinkedHashMap<>();
-        subscriptionsByMemberId.put(MEMBER_ID_1, new PartitionAssignor.Subscription(Collections.singletonList(TOPIC_1)));
-        subscriptionsByMemberId.put(MEMBER_ID_2, new PartitionAssignor.Subscription(Collections.singletonList(TOPIC_2)));
+        subscriptionsByMemberId.put(MEMBER_ID_1, subscription1);
+        subscriptionsByMemberId.put(MEMBER_ID_2, subscription2);
 
-        Map<String, List<TopicPartition>> result = partitionAssignor.assign(partitionCountsByTopic, subscriptionsByMemberId);
+        Map<String, PartitionAssignor.Assignment> result =
+            partitionAssignor.assign(CLUSTER, subscriptionsByMemberId);
 
         assertEquals(2, result.size());
-        assertEquals(10, result.get(MEMBER_ID_1).size());
-        assertEquals(20, result.get(MEMBER_ID_2).size());
+        assertEquals(10, result.get(MEMBER_ID_1).partitions().size());
+        assertEquals(20, result.get(MEMBER_ID_2).partitions().size());
     }
 
     @Test
     public void fullyOverlappingSubscriptionsWithSameMemberAgesAreAssignedToAlphabeticallyLastMember() {
         Instant now = Instant.now();
-        Map<String, Integer> partitionCountsByTopic = new HashMap<>();
-        partitionCountsByTopic.put(TOPIC_1, 10);
+        PartitionAssignor.Subscription subscription1 = new PartitionAssignor.Subscription(
+            Collections.singletonList(TOPIC_1), AbstractAllOrNothingPartitionAssignor.serializeBorn(now));
+        PartitionAssignor.Subscription subscription2 = new PartitionAssignor.Subscription(
+            Collections.singletonList(TOPIC_1), AbstractAllOrNothingPartitionAssignor.serializeBorn(now));
 
         Map<String, PartitionAssignor.Subscription> subscriptionsByMemberId = new LinkedHashMap<>();
-        subscriptionsByMemberId.put(MEMBER_ID_1, new PartitionAssignor.Subscription(Collections.singletonList(TOPIC_1), AbstractAllOrNothingPartitionAssignor.serializeBorn(now)));
-        subscriptionsByMemberId.put(MEMBER_ID_2, new PartitionAssignor.Subscription(Collections.singletonList(TOPIC_1), AbstractAllOrNothingPartitionAssignor.serializeBorn(now)));
+        subscriptionsByMemberId.put(MEMBER_ID_1, subscription1);
+        subscriptionsByMemberId.put(MEMBER_ID_2, subscription2);
 
-        Map<String, List<TopicPartition>> result = partitionAssignor.assign(partitionCountsByTopic, subscriptionsByMemberId);
+        Map<String, PartitionAssignor.Assignment> result =
+            partitionAssignor.assign(CLUSTER, subscriptionsByMemberId);
 
         assertEquals(2, result.size());
-        assertEquals(10, result.get(MEMBER_ID_2).size());
-        assertTrue(result.get(MEMBER_ID_1).isEmpty());
+        assertEquals(10, result.get(MEMBER_ID_2).partitions().size());
+        assertTrue(result.get(MEMBER_ID_1).partitions().isEmpty());
     }
 
     @Test
     public void fullyOverlappingSubscriptionsAreAssignedToYoungestMember() {
         Instant now = Instant.now();
-        Map<String, Integer> partitionCountsByTopic = new HashMap<>();
-        partitionCountsByTopic.put(TOPIC_1, 10);
+        PartitionAssignor.Subscription subscription1 = new PartitionAssignor.Subscription(
+            Collections.singletonList(TOPIC_1), AbstractAllOrNothingPartitionAssignor.serializeBorn(now));
+        PartitionAssignor.Subscription subscription2 = new PartitionAssignor.Subscription(
+            Collections.singletonList(TOPIC_1), AbstractAllOrNothingPartitionAssignor.serializeBorn(now.minusMillis(1L)));
 
         Map<String, PartitionAssignor.Subscription> subscriptionsByMemberId = new LinkedHashMap<>();
-        subscriptionsByMemberId.put(MEMBER_ID_1, new PartitionAssignor.Subscription(
-            Collections.singletonList(TOPIC_1), AbstractAllOrNothingPartitionAssignor.serializeBorn(now)));
-        subscriptionsByMemberId.put(MEMBER_ID_2, new PartitionAssignor.Subscription(
-            Collections.singletonList(TOPIC_1), AbstractAllOrNothingPartitionAssignor.serializeBorn(now.minusMillis(1L))));
+        subscriptionsByMemberId.put(MEMBER_ID_1, subscription1);
+        subscriptionsByMemberId.put(MEMBER_ID_2, subscription2);
 
-        Map<String, List<TopicPartition>> result = partitionAssignor.assign(partitionCountsByTopic, subscriptionsByMemberId);
+        Map<String, PartitionAssignor.Assignment> result =
+            partitionAssignor.assign(CLUSTER, subscriptionsByMemberId);
 
         assertEquals(2, result.size());
-        assertEquals(10, result.get(MEMBER_ID_1).size());
-        assertTrue(result.get(MEMBER_ID_2).isEmpty());
+        assertEquals(10, result.get(MEMBER_ID_1).partitions().size());
+        assertTrue(result.get(MEMBER_ID_2).partitions().isEmpty());
     }
 
     @Test
     public void partiallyOverlappingSubscriptionsAreAssignedToYoungestMember() {
         Instant now = Instant.now();
-        Map<String, Integer> partitionCountsByTopic = new HashMap<>();
-        partitionCountsByTopic.put(TOPIC_1, 10);
-        partitionCountsByTopic.put(TOPIC_2, 20);
+        PartitionAssignor.Subscription subscription1 = new PartitionAssignor.Subscription(
+            Collections.singletonList(TOPIC_1), AbstractAllOrNothingPartitionAssignor.serializeBorn(now));
+        PartitionAssignor.Subscription subscription2 = new PartitionAssignor.Subscription(
+            Arrays.asList(TOPIC_1, TOPIC_2), AbstractAllOrNothingPartitionAssignor.serializeBorn(now.minusMillis(1L)));
 
         Map<String, PartitionAssignor.Subscription> subscriptionsByMemberId = new LinkedHashMap<>();
-        subscriptionsByMemberId.put(MEMBER_ID_1, new PartitionAssignor.Subscription(
-            Collections.singletonList(TOPIC_1), AbstractAllOrNothingPartitionAssignor.serializeBorn(now)));
-        subscriptionsByMemberId.put(MEMBER_ID_2, new PartitionAssignor.Subscription(
-            Arrays.asList(TOPIC_1, TOPIC_2), AbstractAllOrNothingPartitionAssignor.serializeBorn(now.minusMillis(1L))));
+        subscriptionsByMemberId.put(MEMBER_ID_1, subscription1);
+        subscriptionsByMemberId.put(MEMBER_ID_2, subscription2);
 
-        Map<String, List<TopicPartition>> result = partitionAssignor.assign(partitionCountsByTopic, subscriptionsByMemberId);
+        Map<String, PartitionAssignor.Assignment> result =
+            partitionAssignor.assign(CLUSTER, subscriptionsByMemberId);
 
         assertEquals(2, result.size());
-        assertEquals(10, result.get(MEMBER_ID_1).size());
-        assertEquals(20, result.get(MEMBER_ID_2).size());
+        assertEquals(10, result.get(MEMBER_ID_1).partitions().size());
+        assertEquals(20, result.get(MEMBER_ID_2).partitions().size());
     }
 }

@@ -36,7 +36,8 @@
         </dependency>
         <dependency>
             <groupId>org.apache.kafka</groupId>
-            <artifactId>kafka_2.11</artifactId>
+            <artifactId>kafka_2.12</artifactId>
+            <!--NOTE: Version should change to ${confluent.version}-ccs on upgrade to confluent >= 5.3.0-->
             <version>${apache-kafka.version}</version>
             <exclusions>
                 <exclusion>
