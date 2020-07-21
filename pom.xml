@@ -4,7 +4,7 @@
 
     <groupId>com.expediagroup</groupId>
     <artifactId>rhapsody</artifactId>
-    <version>0.3.3-SNAPSHOT</version>
+    <version>0.4.1-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>${project.groupId}:${project.artifactId}</name>
     <description>Reactive Streams framework with support for at-least-once processing</description>
