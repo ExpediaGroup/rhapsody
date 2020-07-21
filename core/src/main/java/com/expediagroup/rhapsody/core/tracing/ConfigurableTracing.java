@@ -119,6 +119,6 @@ public abstract class ConfigurableTracing<T> {
     }
 
     private Optional<SpanContext> tryExtractSpanContext(Map<String, String> headers) {
-        return Optional.ofNullable(tracer.extract(Format.Builtin.TEXT_MAP, new TextMapExtractAdapter(headers)));
+        return Optional.ofNullable(tracer.extract(Format.Builtin.TEXT_MAP_EXTRACT, new TextMapExtractAdapter(headers)));
     }
 }
