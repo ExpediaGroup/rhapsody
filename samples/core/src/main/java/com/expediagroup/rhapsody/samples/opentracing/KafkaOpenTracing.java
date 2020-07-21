@@ -91,7 +91,7 @@ public class KafkaOpenTracing {
         //Step 3) Install a Tracer to the GlobalTracer registry, which the above configured
         //Tracing resources use to access Tracers by default
         MockTracer tracer = new MockTracer();
-        GlobalTracer.register(tracer);
+        GlobalTracer.registerIfAbsent(tracer);
 
         //Step 4) Create a Value Sender Factory which we'll reuse to produce Records
         KafkaValueSenderFactory<String> senderFactory = new KafkaValueSenderFactory<>(kafkaSubscriberConfig);
@@ -99,7 +99,7 @@ public class KafkaOpenTracing {
         //Step 5) Start and activate a Span around which we'll log values to Kafka, followed by
         //Span completion (so it will show up as a completed Span later on)
         Span span = tracer.buildSpan(KafkaOpenTracing.class.getSimpleName()).start();
-        tracer.scopeManager().activate(span, false);
+        tracer.activateSpan(span);
         senderFactory
             .sendValues(Flux.just("Test"), value -> TOPIC_1, Function.identity())
             .then().block();

@@ -22,6 +22,7 @@ import java.util.Map;
 import com.rabbitmq.client.AMQP;
 
 import io.opentracing.Scope;
+import io.opentracing.Span;
 import io.opentracing.SpanContext;
 import io.opentracing.Tracer;
 import io.opentracing.propagation.Format;
@@ -36,16 +37,19 @@ public class TracingRabbitMessageSendInterceptor<T> extends ConfigurableRabbitMe
     public RabbitMessage<T> onSend(RabbitMessage<T> rabbitMessage) {
         Map<String, String> headers = RabbitMessageExtraction.extractStringifiedHeaders(rabbitMessage);
 
-        SpanContext spanContext = tracer.extract(Format.Builtin.TEXT_MAP, new TextMapExtractAdapter(headers));
+        SpanContext spanContext = tracer.extract(Format.Builtin.TEXT_MAP_EXTRACT, new TextMapExtractAdapter(headers));
         Map<String, String> tags = createTags(rabbitMessage, headers);
         Map<String, String> baggage = spanContext != null ? extractBaggage(headers, tags, spanContext) : extractBaggage(headers, tags);
 
         Tracer.SpanBuilder spanBuilder = spanContext != null && referenceParentSpan ? buildSpan().asChildOf(spanContext) : buildSpan(!referenceParentSpan);
         tags.forEach(spanBuilder::withTag);
 
-        try (Scope scope = spanBuilder.startActive(true)) {
-            baggage.forEach(scope.span()::setBaggageItem);
-            return injectSpanContext(rabbitMessage, scope.span().context());
+        Span span = spanBuilder.start();
+        try (Scope closeableScope = tracer.activateSpan(span)) {
+            baggage.forEach(span::setBaggageItem);
+            return injectSpanContext(rabbitMessage, span.context());
+        } finally {
+            span.finish();
         }
     }
 
@@ -61,7 +65,7 @@ public class TracingRabbitMessageSendInterceptor<T> extends ConfigurableRabbitMe
 
     private RabbitMessage<T> injectSpanContext(RabbitMessage<T> rabbitMessage, SpanContext context) {
         Map<String, String> injectedContext = new HashMap<>();
-        tracer.inject(context, Format.Builtin.TEXT_MAP, new TextMapInjectAdapter(injectedContext));
+        tracer.inject(context, Format.Builtin.TEXT_MAP_INJECT, new TextMapInjectAdapter(injectedContext));
 
         AMQP.BasicProperties properties = rabbitMessage.getProperties();
         Map<String, Object> headers = new HashMap<>(properties.getHeaders() == null ? Collections.emptyMap() : properties.getHeaders());

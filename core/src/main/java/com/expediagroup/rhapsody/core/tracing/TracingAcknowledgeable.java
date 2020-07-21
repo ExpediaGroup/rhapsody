@@ -46,7 +46,7 @@ public abstract class TracingAcknowledgeable<T> extends AbstractAcknowledgeable<
     @Override
     public Header header() {
         Map<String, String> headers = new HashMap<>();
-        tracer.inject(span().context(), Format.Builtin.TEXT_MAP, new TextMapInjectAdapter(headers));
+        tracer.inject(span().context(), Format.Builtin.TEXT_MAP_INJECT, new TextMapInjectAdapter(headers));
         return Header.fromMap(headers);
     }
 
@@ -73,10 +73,11 @@ public abstract class TracingAcknowledgeable<T> extends AbstractAcknowledgeable<
 
     @Override
     public void consume(Consumer<? super T> consumer, Consumer<? super Acknowledgeable<T>> andThen) {
-        try (Scope scope = tracer.scopeManager().activate(span(), false)) {
-            scope.span().log(formatEvent("start", "consume", consumer));
+        Span span = span();
+        try (Scope closeableScope = tracer.activateSpan(span)) {
+            span.log(formatEvent("start", "consume", consumer));
             consumer.accept(get());
-            scope.span().log(formatEvent("finish", "consume", consumer));
+            span.log(formatEvent("finish", "consume", consumer));
         }
         // Run andThen Out-of-Scope since this instance strictly only traces operations on its
         // contained value, and it may (in fact, likely) be the case that andThen finishes the
@@ -87,10 +88,11 @@ public abstract class TracingAcknowledgeable<T> extends AbstractAcknowledgeable<
 
     @Override
     public void throwingConsume(Throwing.Consumer<? super T> consumer, Consumer<? super Acknowledgeable<T>> andThen) throws Throwable {
-        try (Scope scope = tracer.scopeManager().activate(span(), false)) {
-            scope.span().log(formatEvent("start", "throwingConsume", consumer));
+        Span span = span();
+        try (Scope closeableScope = tracer.activateSpan(span)) {
+            span.log(formatEvent("start", "throwingConsume", consumer));
             consumer.tryAccept(get());
-            scope.span().log(formatEvent("finish", "throwingConsume", consumer));
+            span.log(formatEvent("finish", "throwingConsume", consumer));
         }
         // Run andThen Out-of-Scope since this instance strictly only traces operations on its
         // contained value, and it may (in fact, likely) be the case that andThen finishes the
@@ -100,10 +102,11 @@ public abstract class TracingAcknowledgeable<T> extends AbstractAcknowledgeable<
     }
 
     protected <R> R traceAround(Supplier<R> supplier, String operationType, Object operation) {
-        try (Scope scope = tracer.scopeManager().activate(span(), false)) {
-            scope.span().log(formatEvent("start", operationType, operation));
+        Span span = span();
+        try (Scope closeableScope = tracer.activateSpan(span)) {
+            span.log(formatEvent("start", operationType, operation));
             R result = supplier.get();
-            scope.span().log(formatEvent("finish", operationType, operation));
+            span.log(formatEvent("finish", operationType, operation));
             return result;
         }
     }

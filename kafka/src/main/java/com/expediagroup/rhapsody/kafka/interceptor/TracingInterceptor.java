@@ -33,6 +33,7 @@ import com.expediagroup.rhapsody.kafka.tracing.ConfigurableConsumerTracing;
 import com.expediagroup.rhapsody.kafka.tracing.UniqueHeadersTextMapInjectAdapter;
 
 import io.opentracing.Scope;
+import io.opentracing.Span;
 import io.opentracing.SpanContext;
 import io.opentracing.Tracer;
 import io.opentracing.propagation.Format;
@@ -57,17 +58,20 @@ public class TracingInterceptor<K, V> extends ConfigurableConsumerTracing implem
     public ProducerRecord<K, V> onSend(ProducerRecord<K, V> record) {
         Map<String, String> headers = RecordHeaderConversion.toMap(record.headers());
 
-        SpanContext spanContext = tracer.extract(Format.Builtin.TEXT_MAP, new TextMapExtractAdapter(headers));
+        SpanContext spanContext = tracer.extract(Format.Builtin.TEXT_MAP_EXTRACT, new TextMapExtractAdapter(headers));
         Map<String, String> tags = createTags(record, headers);
         Map<String, String> baggage = spanContext != null ? extractBaggage(headers, tags, spanContext) : extractBaggage(headers, tags);
 
         Tracer.SpanBuilder spanBuilder = spanContext != null && referenceParentSpan ? buildSpan().asChildOf(spanContext) : buildSpan(!referenceParentSpan);
         tags.forEach(spanBuilder::withTag);
 
-        try (Scope scope = spanBuilder.startActive(true)) {
-            baggage.forEach(scope.span()::setBaggageItem);
-            injectSpanContext(record, scope.span().context());
+        Span span = spanBuilder.start();
+        try (Scope closeableScope = tracer.activateSpan(span)) {
+            baggage.forEach(span::setBaggageItem);
+            injectSpanContext(record, span.context());
             return record;
+        } finally {
+            span.finish();
         }
     }
 
