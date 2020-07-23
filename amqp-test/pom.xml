@@ -4,8 +4,9 @@
 
     <parent>
         <groupId>com.expediagroup</groupId>
-        <artifactId>rhapsody</artifactId>
+        <artifactId>rhapsody-parent</artifactId>
         <version>0.5.1-SNAPSHOT</version>
+        <relativePath>../parent/pom.xml</relativePath>
     </parent>
 
     <artifactId>rhapsody-amqp-test</artifactId>
