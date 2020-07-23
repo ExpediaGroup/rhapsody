@@ -4,8 +4,9 @@
 
     <parent>
         <groupId>com.expediagroup</groupId>
-        <artifactId>rhapsody</artifactId>
+        <artifactId>rhapsody-parent</artifactId>
         <version>0.5.1-SNAPSHOT</version>
+        <relativePath>../parent/pom.xml</relativePath>
     </parent>
 
     <artifactId>rhapsody-samples</artifactId>
@@ -16,24 +17,20 @@
         <module>dropwizard</module>
     </modules>
 
-    <properties>
-        <dropwizard.version>2.0.8</dropwizard.version>
-    </properties>
-
     <dependencyManagement>
         <dependencies>
             <!--BOM Imports-->
             <dependency>
                 <groupId>org.eclipse.jetty</groupId>
                 <artifactId>jetty-bom</artifactId>
-                <version>9.4.28.v20200408</version>
+                <version>${jetty.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
             <dependency>
                 <groupId>org.glassfish.jersey</groupId>
                 <artifactId>jersey-bom</artifactId>
-                <version>2.30.1</version>
+                <version>${jersey.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
