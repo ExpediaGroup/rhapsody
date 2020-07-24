@@ -4,8 +4,9 @@
 
     <parent>
         <groupId>com.expediagroup</groupId>
-        <artifactId>rhapsody</artifactId>
+        <artifactId>rhapsody-parent</artifactId>
         <version>0.3.3-SNAPSHOT</version>
+        <relativePath>../parent/pom.xml</relativePath>
     </parent>
 
     <artifactId>rhapsody-samples</artifactId>
@@ -15,10 +16,6 @@
         <module>core</module>
         <module>dropwizard</module>
     </modules>
-
-    <properties>
-        <dropwizard.version>1.1.8</dropwizard.version>
-    </properties>
 
     <dependencyManagement>
         <dependencies>
@@ -33,7 +30,7 @@
             <dependency>
                 <groupId>org.glassfish.jersey</groupId>
                 <artifactId>jersey-bom</artifactId>
-                <version>2.25.1</version>
+                <version>${jersey.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
