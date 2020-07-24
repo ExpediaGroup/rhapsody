@@ -4,8 +4,9 @@
 
     <parent>
         <groupId>com.expediagroup</groupId>
-        <artifactId>rhapsody</artifactId>
+        <artifactId>rhapsody-parent</artifactId>
         <version>0.3.3-SNAPSHOT</version>
+        <relativePath>../parent/pom.xml</relativePath>
     </parent>
 
     <artifactId>rhapsody-dropwizard</artifactId>
@@ -16,22 +17,22 @@
             <dependency>
                 <groupId>io.dropwizard</groupId>
                 <artifactId>dropwizard-core</artifactId>
-                <version>1.1.8</version>
+                <version>${dropwizard.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.dropwizard</groupId>
                 <artifactId>dropwizard-lifecycle</artifactId>
-                <version>1.1.8</version>
+                <version>${dropwizard.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.dropwizard.metrics</groupId>
                 <artifactId>metrics-core</artifactId>
-                <version>3.2.2</version>
+                <version>${dropwizard-metrics.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.eclipse.jetty</groupId>
                 <artifactId>jetty-util</artifactId>
-                <version>9.4.11.v20180605</version>
+                <version>${jetty.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
