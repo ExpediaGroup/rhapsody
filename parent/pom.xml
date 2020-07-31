@@ -5,7 +5,7 @@
     <parent>
         <groupId>com.expediagroup</groupId>
         <artifactId>rhapsody</artifactId>
-        <version>0.5.4-SNAPSHOT</version>
+        <version>0.5.4</version>
     </parent>
 
     <artifactId>rhapsody-parent</artifactId>
