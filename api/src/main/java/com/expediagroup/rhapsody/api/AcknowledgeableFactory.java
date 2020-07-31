@@ -39,13 +39,27 @@ public interface AcknowledgeableFactory<T> {
      */
     static <T> Function<List<Acknowledgeable<T>>, Acknowledgeable<List<T>>>
     listInverting(Function<? super List<Acknowledgeable<T>>, ? extends AcknowledgeableFactory<List<T>>> listToAcknowledgeableFactory) {
-        return list -> {
-            List<T> values = list.stream().map(Acknowledgeable::get).collect(Collectors.toList());
-            Collection<Runnable> acknowledgers = list.stream().map(Acknowledgeable::getAcknowledger).collect(Collectors.toList());
-            Collection<Consumer<? super Throwable>> nacknowledgers = list.stream().map(Acknowledgeable::getNacknowledger).collect(Collectors.toList());
-            return listToAcknowledgeableFactory.apply(list)
-                .create(values, () -> acknowledgers.forEach(Runnable::run), error -> nacknowledgers.forEach(nacknowledger -> nacknowledger.accept(error)));
-        };
+        return list -> invertList(list, listToAcknowledgeableFactory.apply(list));
+    }
+
+    /**
+     * "Invert" a List/batch of Acknowledgeables in to an Acknowledgeable List. This is useful for
+     * application to methods that operate on Lists of data items, rather than a List of
+     * Acknowledgeables wrapping those data items.
+     *
+     * @param list The List to invert
+     * @param factory The Factory used to create an Acknowledgeable from List of values and
+     *                aggregated Acknowledgers & Nacknowledgers
+     * @param <T> The type of data items in the List of Acknowledgeables
+     * @return An "inversion" of the List of Acknowledgeables
+     */
+    static <T> Acknowledgeable<List<T>> invertList(List<Acknowledgeable<T>> list, AcknowledgeableFactory<List<T>> factory) {
+        List<T> values = list.stream().map(Acknowledgeable::get).collect(Collectors.toList());
+        Collection<Runnable> acknowledgers = list.stream().map(Acknowledgeable::getAcknowledger).collect(Collectors.toList());
+        Collection<Consumer<? super Throwable>> nacknowledgers = list.stream().map(Acknowledgeable::getNacknowledger).collect(Collectors.toList());
+        return factory.create(values,
+            () -> acknowledgers.forEach(Runnable::run),
+            error -> nacknowledgers.forEach(nacknowledger -> nacknowledger.accept(error)));
     }
 
     /**
