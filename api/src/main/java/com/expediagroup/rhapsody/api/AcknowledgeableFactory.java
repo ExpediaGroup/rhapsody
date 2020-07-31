@@ -49,7 +49,7 @@ public interface AcknowledgeableFactory<T> {
      *
      * @param list The List to invert
      * @param factory The Factory used to create an Acknowledgeable from List of values and
-     *                aggregated Acknowledgers & Nacknowledgers
+     *                aggregated Acknowledgers and Nacknowledgers
      * @param <T> The type of data items in the List of Acknowledgeables
      * @return An "inversion" of the List of Acknowledgeables
      */
