@@ -15,6 +15,7 @@
  */
 package com.expediagroup.rhapsody.kafka.partitioning;
 
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -98,7 +99,7 @@ public abstract class AbstractAllOrNothingPartitionAssignor extends AbstractPart
     protected static Long deserializeBornEpochMilli(ByteBuffer byteBuffer) {
         ByteBuffer longBuffer = ByteBuffer.allocate(Long.BYTES);
         longBuffer.putLong(byteBuffer.getLong());
-        longBuffer.flip();
+        Buffer.class.cast(longBuffer).flip(); // Need explicit Buffer cast to be JRE backward-compatible
         return longBuffer.getLong();
     }
 
