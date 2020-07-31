@@ -24,6 +24,8 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
+import org.reactivestreams.Publisher;
+
 import com.expediagroup.rhapsody.api.AbstractAcknowledgeable;
 import com.expediagroup.rhapsody.api.Acknowledgeable;
 import com.expediagroup.rhapsody.api.Header;
@@ -64,6 +66,11 @@ public abstract class TracingAcknowledgeable<T> extends AbstractAcknowledgeable<
     @Override
     public <R> Acknowledgeable<R> map(Function<? super T, ? extends R> mapper) {
         return traceAround(() -> super.map(mapper), "map", mapper);
+    }
+
+    @Override
+    public <R, P extends Publisher<R>> Publisher<Acknowledgeable<R>> publish(Function<? super T, ? extends P> mapper) {
+        return traceAround(() -> super.publish(mapper), "publish", mapper);
     }
 
     @Override
