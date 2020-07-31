@@ -27,7 +27,8 @@ public enum SchedulerType {
     IMMEDIATE((name, config) -> Schedulers.immediate()),
     SINGLE((name, config) -> Schedulers.newSingle(name, loadIsDaemon(config))),
     PARALLEL((name, config) -> Schedulers.newParallel(name, loadParallelism(config), loadIsDaemon(config))),
-    ELASTIC((name, config) -> Schedulers.newElastic(name, loadTtlSeconds(config), loadIsDaemon(config)));
+    ELASTIC((name, config) -> Schedulers.newElastic(name, loadTtlSeconds(config), loadIsDaemon(config))),
+    BOUNDED_ELASTIC((name, config) -> Schedulers.newBoundedElastic(loadThreadCap(config), loadQueuedTaskCap(config), name, loadTtlSeconds(config), loadIsDaemon(config)));
 
     private final BiFunction<String, Map<String, ?>, Scheduler> namedConfigFactory;
 
@@ -49,5 +50,13 @@ public enum SchedulerType {
 
     private static int loadTtlSeconds(Map<String, ?> config) {
         return ConfigLoading.load(config, "ttlSeconds", Integer::valueOf, 60);
+    }
+
+    private static int loadThreadCap(Map<String, ?> config) {
+        return ConfigLoading.load(config, "threadCap", Integer::valueOf, 10 * Runtime.getRuntime().availableProcessors());
+    }
+
+    private static int loadQueuedTaskCap(Map<String, ?> config) {
+        return ConfigLoading.load(config, "queuedTaskCap", Integer::valueOf, 100000);
     }
 }
