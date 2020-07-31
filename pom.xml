@@ -4,7 +4,7 @@
 
     <groupId>com.expediagroup</groupId>
     <artifactId>rhapsody</artifactId>
-    <version>0.5.2-SNAPSHOT</version>
+    <version>0.5.2</version>
     <packaging>pom</packaging>
     <name>${project.groupId}:${project.artifactId}</name>
     <description>Reactive Streams framework with support for at-least-once processing</description>
@@ -34,7 +34,7 @@
         <connection>scm:git:git@github.com:ExpediaGroup/rhapsody.git</connection>
         <developerConnection>scm:git:git@github.com:ExpediaGroup/rhapsody.git</developerConnection>
         <url>http://github.com/ExpediaGroup/rhapsody</url>
-        <tag>HEAD</tag>
+        <tag>rhapsody-0.5.2</tag>
     </scm>
 
     <distributionManagement>
