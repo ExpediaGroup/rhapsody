@@ -113,7 +113,7 @@ public class KafkaOpenTracing {
         new KafkaValueFluxFactory<String>(kafkaPublisherConfig)
             .receiveValue(Collections.singletonList(TOPIC_1), new OrderManagingReceiverAcknowledgementStrategy())
             .map(Acknowledgeable.mapping(String::toUpperCase))
-            .transform(upperCasedValues -> senderFactory.sendAcknowledgeableValues(upperCasedValues, value -> TOPIC_2, Function.identity()))
+            .transform(senderFactory.sendAcknowledgeableValues(TOPIC_2, Function.identity()))
             .doOnNext(Acknowledgeable::acknowledge)
             .map(Acknowledgeable::get)
             .take(1)

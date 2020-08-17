@@ -93,12 +93,11 @@ public class KafkaDeduplication {
         //number of results we expect ('.take(4)'), or else this Flow would never complete.
         //Deduplication is applied early in the stream to limit the processing of duplicate methods
         //via DeduplicatingTransformer
-        KafkaValueSenderFactory<String> senderFactory = new KafkaValueSenderFactory<>(kafkaSubscriberConfig);
         Mono<List<String>> processed = new KafkaValueFluxFactory<String>(kafkaPublisherConfig)
             .receiveValue(Collections.singletonList(TOPIC_1), new OrderManagingReceiverAcknowledgementStrategy())
             .transform(DeduplicatingTransformer.acknowledgeable(deduplicationConfig, new IdentityDeduplication<>()))
             .map(Acknowledgeable.mapping(String::toUpperCase))
-            .transform(upperCasedValues -> senderFactory.sendAcknowledgeableValues(upperCasedValues, value -> TOPIC_2, Function.identity()))
+            .transform(new KafkaValueSenderFactory<String>(kafkaSubscriberConfig).sendAcknowledgeableValues(TOPIC_2, Function.identity()))
             .doOnNext(Acknowledgeable::acknowledge)
             .map(Acknowledgeable::get)
             .map(SenderResult::correlationMetadata)
@@ -122,7 +121,7 @@ public class KafkaDeduplication {
 
         //Step 6) Send the above values to the Kafka topic we're processing
         new KafkaValueSenderFactory<>(kafkaSubscriberConfig)
-            .sendValues(Flux.fromIterable(values), value -> TOPIC_1, Function.identity())
+            .sendValues(Flux.fromIterable(values), TOPIC_1, Function.identity())
             .subscribe();
 
         //Step 7) Await consumption of the results

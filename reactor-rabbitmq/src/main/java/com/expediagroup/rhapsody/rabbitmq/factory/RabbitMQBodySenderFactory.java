@@ -15,6 +15,8 @@
  */
 package com.expediagroup.rhapsody.rabbitmq.factory;
 
+import java.util.function.Function;
+
 import org.reactivestreams.Publisher;
 
 import com.expediagroup.rhapsody.api.Acknowledgeable;
@@ -30,9 +32,19 @@ public class RabbitMQBodySenderFactory<T> extends RabbitMQSenderFactory<T> {
         super(configFactory);
     }
 
+    public Function<Publisher<Acknowledgeable<T>>, Flux<Acknowledgeable<OutboundMessageResult<CorrelableOutboundMessage<T>>>>>
+    sendAcknowledgeableBodies(RabbitMessageCreator<T> rabbitMessageCreator) {
+        return bodies -> sendAcknowledgeableBodies(bodies, rabbitMessageCreator);
+    }
+
     public Flux<Acknowledgeable<OutboundMessageResult<CorrelableOutboundMessage<T>>>>
     sendAcknowledgeableBodies(Publisher<Acknowledgeable<T>> bodies, RabbitMessageCreator<T> rabbitMessageCreator) {
         return Flux.from(bodies).map(Acknowledgeable.mapping(rabbitMessageCreator)).transform(this::sendAcknowledgeable);
+    }
+
+    public Function<Publisher<T>, Flux<OutboundMessageResult<CorrelableOutboundMessage<T>>>>
+    sendBodies(RabbitMessageCreator<T> rabbitMessageCreator) {
+        return bodies -> sendBodies(bodies, rabbitMessageCreator);
     }
 
     public Flux<OutboundMessageResult<CorrelableOutboundMessage<T>>>

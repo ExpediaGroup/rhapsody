@@ -66,6 +66,11 @@ public class RabbitMQSenderFactory<T> {
         this.resubscribeOnError = ConfigLoading.load(properties, RESUBSCRIBE_ON_ERROR_CONFIG, Boolean::valueOf, DEFAULT_RESUBSCRIBE_ON_ERROR);
     }
 
+    public Function<Publisher<Acknowledgeable<RabbitMessage<T>>>, Flux<Acknowledgeable<OutboundMessageResult<CorrelableOutboundMessage<T>>>>>
+    sendAcknowledgeable() {
+        return this::sendAcknowledgeable;
+    }
+
     public Flux<Acknowledgeable<OutboundMessageResult<CorrelableOutboundMessage<T>>>>
     sendAcknowledgeable(Publisher<Acknowledgeable<RabbitMessage<T>>> acknowledgeables) {
         return Flux.from(acknowledgeables)
@@ -73,6 +78,10 @@ public class RabbitMQSenderFactory<T> {
             .map(message -> serialize(message, Acknowledgeable::get, acknowledgeable -> acknowledgeable.map(RabbitMessage::getBody)))
             .transform(serializedMessages -> sendSerialized(serializedMessages, DEFAULT_ACKNOWLEDGEABLE_SEND_OPTIONS))
             .map(this::toAcknowledgeableResult);
+    }
+
+    public Function<Publisher<RabbitMessage<T>>, Flux<OutboundMessageResult<CorrelableOutboundMessage<T>>>> send() {
+        return this::send;
     }
 
     public Flux<OutboundMessageResult<CorrelableOutboundMessage<T>>> send(Publisher<RabbitMessage<T>> messages) {
