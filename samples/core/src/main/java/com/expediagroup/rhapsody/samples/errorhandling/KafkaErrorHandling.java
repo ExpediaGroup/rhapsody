@@ -126,7 +126,7 @@ public class KafkaErrorHandling {
                         System.err.println("Unexpected failure=" + e);
                     }
                 })
-                .transform(acknowledgeables -> senderFactory.sendAcknowledgeableValues(acknowledgeables, string -> TOPIC_2, Function.identity()))
+                .transform(senderFactory.sendAcknowledgeableValues(TOPIC_2, Function.identity()))
                 .doOnNext(next -> latch.countDown())
                 .doOnNext(senderResult -> {
                     if (senderResult.get().exception() == null) {
@@ -140,8 +140,7 @@ public class KafkaErrorHandling {
         //on the same topic-partition
         Flux.just("test_1", "test_2")
             .subscribeOn(Schedulers.elastic())
-            .transform(strings -> new KafkaValueSenderFactory<String>(kafkaSubscriberConfig)
-                .sendValues(strings, value -> TOPIC_1, string -> "KEY"))
+            .transform(new KafkaValueSenderFactory<String>(kafkaSubscriberConfig).sendValues(TOPIC_1, string -> "KEY"))
             .subscribe();
 
         //Step 6) Await the successful completion of the data we emitted. There should be exactly

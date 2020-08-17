@@ -110,8 +110,7 @@ public class KafkaArbitraryParallelism {
             .subscribeOn(Schedulers.elastic())
             .map(i -> UUID.randomUUID())
             .map(UUID::toString)
-            .transform(uuids -> new KafkaValueSenderFactory<String>(kafkaSubscriberConfig)
-                .sendValues(uuids, value -> TOPIC, Function.identity()))
+            .transform(new KafkaValueSenderFactory<String>(kafkaSubscriberConfig).sendValues(TOPIC, Function.identity()))
             .subscribe();
 
         //Step 5) Await processing completion of the UUIDs we produced

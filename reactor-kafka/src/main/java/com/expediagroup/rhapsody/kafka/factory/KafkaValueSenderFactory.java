@@ -38,10 +38,37 @@ public class KafkaValueSenderFactory<V> extends KafkaSenderFactory<Object, V> {
         super(configFactory);
     }
 
+    public Function<Publisher<Acknowledgeable<V>>, Flux<Acknowledgeable<SenderResult<V>>>>
+    sendAcknowledgeableValues(String topic, Function<V, ?> valueToKey) {
+        return sendAcknowledgeableValues(value -> topic, valueToKey);
+    }
+
+    public Function<Publisher<Acknowledgeable<V>>, Flux<Acknowledgeable<SenderResult<V>>>>
+    sendAcknowledgeableValues(Function<V, String> valueToTopic, Function<V, ?> valueToKey) {
+        return acknowledgeableValues -> sendAcknowledgeableValues(acknowledgeableValues, valueToTopic, valueToKey);
+    }
+
+    public Flux<Acknowledgeable<SenderResult<V>>>
+    sendAcknowledgeableValues(Publisher<Acknowledgeable<V>> acknowledgeableValues, String topic, Function<V, ?> valueToKey) {
+        return sendAcknowledgeableValues(acknowledgeableValues, value -> topic, valueToKey);
+    }
+
     public Flux<Acknowledgeable<SenderResult<V>>>
     sendAcknowledgeableValues(Publisher<Acknowledgeable<V>> acknowledgeableValues, Function<V, String> valueToTopic, Function<V, ?> valueToKey) {
         return sendAcknowledgeable(Flux.from(acknowledgeableValues)
             .map(acknowledgeable -> createAcknowledgeableProducerRecord(acknowledgeable, valueToTopic, valueToKey)));
+    }
+
+    public Function<Publisher<V>, Flux<SenderResult<V>>> sendValues(String topic, Function<V, ?> valueToKey) {
+        return sendValues(value -> topic, valueToKey);
+    }
+
+    public Function<Publisher<V>, Flux<SenderResult<V>>> sendValues(Function<V, String> valueToTopic, Function<V, ?> valueToKey) {
+        return values -> sendValues(values, valueToTopic, valueToKey);
+    }
+
+    public Flux<SenderResult<V>> sendValues(Publisher<V> values, String topic, Function<V, ?> valueToKey) {
+        return sendValues(values, value -> topic, valueToKey);
     }
 
     public Flux<SenderResult<V>> sendValues(Publisher<V> values, Function<V, String> valueToTopic, Function<V, ?> valueToKey) {
