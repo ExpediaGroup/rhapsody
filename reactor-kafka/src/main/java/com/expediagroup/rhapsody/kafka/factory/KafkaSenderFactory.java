@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
 
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -70,11 +71,19 @@ public class KafkaSenderFactory<K, V> {
         this.resubscribeOnError = ConfigLoading.load(properties, RESUBSCRIBE_ON_ERROR_CONFIG, Boolean::valueOf, DEFAULT_RESUBSCRIBE_ON_ERROR);
     }
 
+    public Function<Publisher<Acknowledgeable<ProducerRecord<K, V>>>, Flux<Acknowledgeable<SenderResult<V>>>> sendAcknowledgeable() {
+        return this::sendAcknowledgeable;
+    }
+
     public Flux<Acknowledgeable<SenderResult<V>>> sendAcknowledgeable(Publisher<Acknowledgeable<ProducerRecord<K, V>>> acknowledgeables) {
         return Flux.from(acknowledgeables)
             .map(this::createAcknowledgeableValuedSenderRecord)
             .transform(this::sendRecords)
             .map(AcknowledgeableSenderResult::fromSenderResult);
+    }
+
+    public Function<Publisher<ProducerRecord<K, V>>, Flux<SenderResult<V>>> send() {
+        return this::send;
     }
 
     public Flux<SenderResult<V>> send(Publisher<ProducerRecord<K, V>> producerRecords) {
