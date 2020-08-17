@@ -43,10 +43,8 @@ public class SampleKafkaGenerationStanza extends Stanza<SampleKafkaGenerationSta
         kafkaSubscriberConfig.put(ProducerConfig.ACKS_CONFIG, "all");
         kafkaSubscriberConfig.put(ProducerConfig.METRIC_REPORTER_CLASSES_CONFIG, ReactiveStreamsMetricsReporter.class.getName());
 
-        KafkaValueSenderFactory<Long> kafkaValueSenderFactory = new KafkaValueSenderFactory<>(kafkaSubscriberConfig);
-
         return Flux.interval(Duration.ofMillis(100))
-            .transform(longs -> kafkaValueSenderFactory.sendValues(longs, value -> config.getTopic(), Function.identity()))
+            .transform(new KafkaValueSenderFactory<Long>(kafkaSubscriberConfig).sendValues(config.getTopic(), Function.identity()))
             .subscribe();
     }
 }

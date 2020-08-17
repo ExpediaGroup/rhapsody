@@ -49,7 +49,7 @@ public class KafkaPart1 {
 
         //Step 2) Send some Record values to a hardcoded topic, using values as Record keys
         new KafkaValueSenderFactory<String>(kafkaSubscriberConfig)
-            .sendValues(Flux.just("Test"), value -> TOPIC, Function.identity())
+            .sendValues(Flux.just("Test"), TOPIC, Function.identity())
             .collectList()
             .doOnNext(senderResults -> System.out.println("senderResults: " + senderResults))
             .block();
