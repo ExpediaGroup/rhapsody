@@ -25,16 +25,28 @@ import com.expediagroup.rhapsody.util.Defaults;
 
 public final class DeduplicationConfig {
 
+    private final int deduplicationSourcePrefetch;
+
     private final Duration deduplicationDuration;
 
     private final long maxDeduplicationSize;
 
     private final int deduplicationConcurrency;
 
+    @Deprecated
     public DeduplicationConfig(Duration deduplicationDuration, long maxDeduplicationSize, int deduplicationConcurrency) {
+        this(Defaults.PREFETCH, deduplicationDuration, maxDeduplicationSize, deduplicationConcurrency);
+    }
+
+    public DeduplicationConfig(int deduplicationSourcePrefetch, Duration deduplicationDuration, long maxDeduplicationSize, int deduplicationConcurrency) {
+        this.deduplicationSourcePrefetch = deduplicationSourcePrefetch;
         this.deduplicationDuration = deduplicationDuration;
         this.maxDeduplicationSize = maxDeduplicationSize;
         this.deduplicationConcurrency = deduplicationConcurrency;
+    }
+
+    public int getDeduplicationSourcePrefetch() {
+        return deduplicationSourcePrefetch;
     }
 
     public boolean isEnabled() {
@@ -68,6 +80,7 @@ public final class DeduplicationConfig {
         @Override
         protected Map<String, Object> createDefaults() {
             Map<String, Object> defaults = new HashMap<>();
+            defaults.put("deduplicationSourcePrefetch", Defaults.PREFETCH);
             defaults.put("deduplicationDuration", "PT1S");
             defaults.put("maxDeduplicationSize", Long.MAX_VALUE);
             defaults.put("deduplicationConcurrency", Defaults.CONCURRENCY);
@@ -77,6 +90,7 @@ public final class DeduplicationConfig {
         @Override
         protected DeduplicationConfig construct(Map<String, Object> configs) {
             return new DeduplicationConfig(
+                ConfigLoading.loadOrThrow(configs, "deduplicationSourcePrefetch", Integer::valueOf),
                 ConfigLoading.loadOrThrow(configs, "deduplicationDuration", Duration::parse),
                 ConfigLoading.loadOrThrow(configs, "maxDeduplicationSize", Long::valueOf),
                 ConfigLoading.loadOrThrow(configs, "deduplicationConcurrency", Integer::valueOf)
