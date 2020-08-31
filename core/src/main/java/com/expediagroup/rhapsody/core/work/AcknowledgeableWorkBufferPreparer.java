@@ -18,8 +18,6 @@ package com.expediagroup.rhapsody.core.work;
 import java.util.List;
 import java.util.function.Function;
 
-import org.reactivestreams.Publisher;
-
 import com.expediagroup.rhapsody.api.Acknowledgeable;
 import com.expediagroup.rhapsody.api.RxFailureConsumer;
 import com.expediagroup.rhapsody.api.RxWorkPreparer;
@@ -29,7 +27,7 @@ import com.expediagroup.rhapsody.api.WorkReducer;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-public class AcknowledgeableWorkBufferPreparer<W extends Work> implements Function<List<Acknowledgeable<W>>, Publisher<Acknowledgeable<W>>> {
+public class AcknowledgeableWorkBufferPreparer<W extends Work> implements Function<List<Acknowledgeable<W>>, Mono<Acknowledgeable<W>>> {
 
     private final WorkReducer<W> workReducer;
 
@@ -44,7 +42,7 @@ public class AcknowledgeableWorkBufferPreparer<W extends Work> implements Functi
     }
 
     @Override
-    public Publisher<Acknowledgeable<W>> apply(List<Acknowledgeable<W>> buffer) {
+    public Mono<Acknowledgeable<W>> apply(List<Acknowledgeable<W>> buffer) {
         List<Acknowledgeable<W>> nonCanceledBuffer = WorkBuffers.collectNonCanceledAcknowledgeable(buffer, Acknowledgeable::acknowledge);
         return Flux.fromIterable(nonCanceledBuffer)
             .reduce(Acknowledgeable.reducing(workReducer::reduceTry))

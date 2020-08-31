@@ -31,7 +31,8 @@ import reactor.test.StepVerifier;
 
 public class DeduplicatingTransformerTest {
 
-    private static final DeduplicationConfig CONFIG = new DeduplicationConfig(Duration.ofMillis(800), 4, Defaults.CONCURRENCY);
+    private static final DeduplicationConfig CONFIG =
+        new DeduplicationConfig(Defaults.PREFETCH, Duration.ofMillis(800), 4, Defaults.CONCURRENCY);
 
     private final FluxProcessor<String, String> processor = UnicastProcessor.create();
 
