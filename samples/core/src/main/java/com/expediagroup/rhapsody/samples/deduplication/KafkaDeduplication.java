@@ -84,7 +84,8 @@ public class KafkaDeduplication {
         //window with a maximum timespan of 4 seconds and a max size of 4 items is opened. We also
         //indicate a default for the max number of concurrent windows allowed to be opened at a
         //time
-        DeduplicationConfig deduplicationConfig = new DeduplicationConfig(Duration.ofSeconds(2), 4L, Defaults.CONCURRENCY);
+        DeduplicationConfig deduplicationConfig =
+            new DeduplicationConfig(Defaults.PREFETCH, Duration.ofSeconds(2), 4L, Defaults.CONCURRENCY);
 
         //Step 4) Apply consumption of the Kafka topic we've produced data to as a stream process.
         //The "process" in this stream upper-cases the values we sent previously, producing the

@@ -38,7 +38,8 @@ public class WorkBuffererTest {
 
     private static final Duration STEP_DURATION = Duration.ofMillis(200);
 
-    private static final WorkBufferConfig BUFFER_CONFIG = new WorkBufferConfig(STEP_DURATION.multipliedBy(4), 8, Defaults.CONCURRENCY);
+    private static final WorkBufferConfig BUFFER_CONFIG =
+        new WorkBufferConfig(Defaults.PREFETCH, STEP_DURATION.multipliedBy(4), 8, Defaults.CONCURRENCY);
 
     private final FluxProcessor<TestWork, TestWork> eventQueue = UnicastProcessor.create();
 

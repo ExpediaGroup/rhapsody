@@ -25,16 +25,28 @@ import com.expediagroup.rhapsody.util.Defaults;
 
 public final class WorkBufferConfig {
 
+    private final int bufferSourcePrefetch;
+
     private final Duration bufferDuration;
 
     private final long maxBufferSize;
 
     private final int bufferConcurrency;
 
+    @Deprecated
     public WorkBufferConfig(Duration bufferDuration, long maxBufferSize, int bufferConcurrency) {
+        this(Defaults.PREFETCH, bufferDuration, maxBufferSize, bufferConcurrency);
+    }
+
+    public WorkBufferConfig(int bufferSourcePrefetch, Duration bufferDuration, long maxBufferSize, int bufferConcurrency) {
+        this.bufferSourcePrefetch = bufferSourcePrefetch;
         this.bufferDuration = bufferDuration;
         this.maxBufferSize = maxBufferSize;
         this.bufferConcurrency = bufferConcurrency;
+    }
+
+    public int getBufferSourcePrefetch() {
+        return bufferSourcePrefetch;
     }
 
     public Duration getBufferDuration() {
@@ -58,6 +70,7 @@ public final class WorkBufferConfig {
         @Override
         protected Map<String, Object> createDefaults() {
             Map<String, Object> defaults = new HashMap<>();
+            defaults.put("bufferSourcePrefetch", Defaults.PREFETCH);
             defaults.put("bufferDuration", "PT10S");
             defaults.put("maxBufferSize", 8);
             defaults.put("bufferConcurrency", Defaults.CONCURRENCY);
@@ -67,6 +80,7 @@ public final class WorkBufferConfig {
         @Override
         protected WorkBufferConfig construct(Map<String, Object> configs) {
             return new WorkBufferConfig(
+                ConfigLoading.loadOrThrow(configs, "bufferSourcePrefetch", Integer::valueOf),
                 ConfigLoading.loadOrThrow(configs, "bufferDuration", Duration::parse),
                 ConfigLoading.loadOrThrow(configs, "maxBufferSize", Long::valueOf),
                 ConfigLoading.loadOrThrow(configs, "bufferConcurrency", Integer::valueOf)

@@ -56,7 +56,7 @@ public final class DeduplicatingTransformer<T> implements Function<Publisher<T>,
 
     private Flux<T> applyDeduplication(Publisher<T> publisher) {
         return Flux.from(publisher)
-            .groupBy(deduplication::extractKey)
+            .groupBy(deduplication::extractKey, config.getDeduplicationSourcePrefetch())
             .flatMap(this::deduplicateGroup, config.getDeduplicationConcurrency());
     }
 
