@@ -41,7 +41,8 @@ public abstract class AbstractBufferedWorkTest {
 
     protected static final Duration STEP_DURATION = Duration.ofMillis(200);
 
-    protected static final WorkBufferConfig WORK_BUFFER_CONFIG = new WorkBufferConfig(STEP_DURATION.multipliedBy(4), 8, Defaults.CONCURRENCY);
+    protected static final WorkBufferConfig WORK_BUFFER_CONFIG =
+        new WorkBufferConfig(Defaults.PREFETCH, STEP_DURATION.multipliedBy(4), 8, Defaults.CONCURRENCY);
 
     protected static final String SUBJECT = "SUBJECT";
 
