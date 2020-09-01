@@ -65,7 +65,7 @@ public final class WorkBufferer<T> implements Function<Publisher<T>, Flux<List<T
     public Flux<List<T>> apply(Publisher<T> publisher) {
         return Flux.from(publisher)
             .groupBy(t -> extractHeader(t).subject(), config.getBufferSourcePrefetch()) // Each Subject gets its own Group
-            .flatMap(this::bufferGroup, config.getBufferConcurrency());                   // Conditionally buffer max in-flight groups bounded in Duration and size
+            .flatMap(this::bufferGroup, config.getBufferConcurrency());                 // Conditionally buffer max in-flight groups bounded in Duration and size
     }
 
     private Mono<List<T>> bufferGroup(GroupedFlux<String, T> groupFlux) {
