@@ -17,11 +17,15 @@ package com.expediagroup.rhapsody.core.work;
 
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
+import java.util.stream.Stream;
 
 import org.junit.Test;
 import org.reactivestreams.Publisher;
@@ -30,9 +34,13 @@ import com.expediagroup.rhapsody.api.WorkType;
 import com.expediagroup.rhapsody.test.TestWork;
 import com.expediagroup.rhapsody.util.Defaults;
 
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxProcessor;
+import reactor.core.publisher.Mono;
 import reactor.core.publisher.UnicastProcessor;
 import reactor.test.StepVerifier;
+
+import static org.junit.Assert.assertEquals;
 
 public class WorkBuffererTest {
 
@@ -135,5 +143,42 @@ public class WorkBuffererTest {
             .expectNext(LongStream.range(0, BUFFER_CONFIG.getMaxBufferSize()).mapToObj(i -> intent).collect(Collectors.toList()))
             .thenCancel()
             .verify();
+    }
+
+    @Test
+    public void workIsNotDroppedUnderHeavyLoad() throws Exception {
+        AtomicLong upstream = new AtomicLong(0L);
+        AtomicLong downstream = new AtomicLong(0L);
+        CountDownLatch latch = new CountDownLatch(1);
+
+        Flux.fromStream(Stream.iterate(randomLong(BUFFER_CONFIG.getBufferConcurrency()), last -> randomLong(BUFFER_CONFIG.getBufferConcurrency())))
+            .map(number -> TestWork.create(WorkType.INTENT, Long.toString(number)))
+            .flatMap(intent -> Flux.concat(
+                Mono.just(intent),
+                Mono.just(TestWork.create(WorkType.COMMIT, intent.workHeader().subject()))
+                    .delayElement(randomDuration(BUFFER_CONFIG.getBufferDuration().multipliedBy(2)))),
+                BUFFER_CONFIG.getBufferConcurrency())
+            .take(Duration.ofSeconds(10L))
+            .doOnNext(next -> upstream.incrementAndGet())
+            .transform(WorkBufferer.identity(BUFFER_CONFIG))
+            .doOnNext(buffer -> {
+                // Mimic real-world computationally-bound processing overhead
+                long startNano = System.nanoTime();
+                while (System.nanoTime() - startNano < 1_000_000) ;
+            })
+            .map(Collection::size)
+            .subscribe(downstream::addAndGet, System.err::println, latch::countDown);
+
+        latch.await();
+        assertEquals(upstream.get(), downstream.get());
+        System.out.println("Emitted: " + downstream.get());
+    }
+
+    private static long randomLong(long exclusiveUpperBound) {
+        return (long) (Math.random() * exclusiveUpperBound);
+    }
+
+    private static Duration randomDuration(Duration exclusiveUpperBound) {
+        return Duration.ofMillis((long) (Math.random() * exclusiveUpperBound.toMillis()));
     }
 }
