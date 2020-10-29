@@ -42,34 +42,55 @@ import reactor.core.scheduler.Schedulers;
  */
 public final class WorkBufferer<T> implements Function<Publisher<T>, Flux<List<T>>> {
 
-    private static final Scheduler BUFFERING_SCHEDULER = Schedulers.newParallel(WorkBufferer.class.getSimpleName());
+    private static final Scheduler DEFAULT_SCHEDULER = Schedulers.newBoundedElastic(
+        Runtime.getRuntime().availableProcessors() * 10,
+        Integer.MAX_VALUE,
+        WorkBufferer.class.getSimpleName());
 
     private final WorkBufferConfig config;
 
     private final Function<? super T, Work> workExtractor;
 
-    private WorkBufferer(WorkBufferConfig config, Function<? super T, Work> workExtractor) {
+    private final Scheduler sourceScheduler;
+
+    private WorkBufferer(WorkBufferConfig config, Function<? super T, Work> workExtractor, Scheduler sourceScheduler) {
         this.config = config;
         this.workExtractor = workExtractor;
+        this.sourceScheduler = sourceScheduler;
     }
 
     public static <W extends Work> WorkBufferer<W> identity(WorkBufferConfig workBufferConfig) {
-        return new WorkBufferer<>(workBufferConfig, Function.identity());
+        return identity(workBufferConfig, DEFAULT_SCHEDULER);
+    }
+
+    public static <W extends Work> WorkBufferer<W> identity(WorkBufferConfig workBufferConfig, Scheduler sourceScheduler) {
+        return new WorkBufferer<>(workBufferConfig, Function.identity(), sourceScheduler);
     }
 
     public static <W extends Work> WorkBufferer<Acknowledgeable<W>> acknowledgeable(WorkBufferConfig workBufferConfig) {
-        return new WorkBufferer<>(workBufferConfig, Acknowledgeable::get);
+        return acknowledgeable(workBufferConfig, DEFAULT_SCHEDULER);
+    }
+
+    public static <W extends Work> WorkBufferer<Acknowledgeable<W>> acknowledgeable(WorkBufferConfig workBufferConfig, Scheduler sourceScheduler) {
+        return new WorkBufferer<>(workBufferConfig, Acknowledgeable::get, sourceScheduler);
     }
 
     @Override
     public Flux<List<T>> apply(Publisher<T> publisher) {
+        // - Use Scheduler with single worker for publishing, buffering, and subscribing
+        //   (https://github.com/reactor/reactor-core/issues/2352)
+        // - Each Subject gets its own Group
+        // - Conditionally buffer max in-flight groups bounded in Duration and size
+        Scheduler scheduler = Schedulers.single(sourceScheduler);
         return Flux.from(publisher)
-            .groupBy(t -> extractHeader(t).subject(), config.getBufferSourcePrefetch()) // Each Subject gets its own Group
-            .flatMap(this::bufferGroup, config.getBufferConcurrency());                 // Conditionally buffer max in-flight groups bounded in Duration and size
+            .publishOn(scheduler, config.getBufferSourcePrefetch())
+            .groupBy(t -> extractHeader(t).subject())
+            .flatMap(groupedFlux -> bufferGroup(groupedFlux, scheduler), config.getBufferConcurrency())
+            .subscribeOn(scheduler);
     }
 
-    private Mono<List<T>> bufferGroup(GroupedFlux<String, T> groupFlux) {
-        return groupFlux.take(config.getBufferDuration(), BUFFERING_SCHEDULER)
+    private Mono<List<T>> bufferGroup(GroupedFlux<String, T> groupFlux, Scheduler scheduler) {
+        return groupFlux.take(config.getBufferDuration(), scheduler)
             .take(config.getMaxBufferSize())
             .takeUntil(this::shouldCloseBufferForWork)
             .collectList();
