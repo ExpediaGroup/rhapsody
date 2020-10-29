@@ -30,23 +30,39 @@ import reactor.core.scheduler.Schedulers;
 
 public final class DeduplicatingTransformer<T> implements Function<Publisher<T>, Publisher<T>> {
 
-    private static final Scheduler DEDUPLICATING_SCHEDULER = Schedulers.newParallel(DeduplicatingTransformer.class.getSimpleName());
+    private static final Scheduler DEFAULT_SCHEDULER = Schedulers.newBoundedElastic(
+        Runtime.getRuntime().availableProcessors() * 10,
+        Integer.MAX_VALUE,
+        DeduplicatingTransformer.class.getSimpleName());
 
     private final DeduplicationConfig config;
 
     private final Deduplication<T> deduplication;
 
-    private DeduplicatingTransformer(DeduplicationConfig config, Deduplication<T> deduplication) {
+    private final Scheduler sourceScheduler;
+
+    private DeduplicatingTransformer(DeduplicationConfig config, Deduplication<T> deduplication, Scheduler sourceScheduler) {
         this.config = config;
         this.deduplication = deduplication;
+        this.sourceScheduler = sourceScheduler;
     }
 
     public static <T> DeduplicatingTransformer<T> identity(DeduplicationConfig config, Deduplication<T> deduplication) {
-        return new DeduplicatingTransformer<>(config, deduplication);
+        return identity(config, deduplication, DEFAULT_SCHEDULER);
     }
 
-    public static <T> DeduplicatingTransformer<Acknowledgeable<T>> acknowledgeable(DeduplicationConfig config, Deduplication<T> deduplication) {
-        return new DeduplicatingTransformer<>(config, new AcknowledgeableDeduplication<>(deduplication));
+    public static <T> DeduplicatingTransformer<T> identity(DeduplicationConfig config, Deduplication<T> deduplication, Scheduler sourceScheduler) {
+        return new DeduplicatingTransformer<>(config, deduplication, sourceScheduler);
+    }
+
+    public static <T> DeduplicatingTransformer<Acknowledgeable<T>>
+    acknowledgeable(DeduplicationConfig config, Deduplication<T> deduplication) {
+        return acknowledgeable(config, deduplication, DEFAULT_SCHEDULER);
+    }
+
+    public static <T> DeduplicatingTransformer<Acknowledgeable<T>>
+    acknowledgeable(DeduplicationConfig config, Deduplication<T> deduplication, Scheduler sourceScheduler) {
+        return new DeduplicatingTransformer<>(config, new AcknowledgeableDeduplication<>(deduplication), sourceScheduler);
     }
 
     @Override
@@ -55,13 +71,20 @@ public final class DeduplicatingTransformer<T> implements Function<Publisher<T>,
     }
 
     private Flux<T> applyDeduplication(Publisher<T> publisher) {
+        // - Use Scheduler with single worker for publishing, buffering, and subscribing
+        //   (https://github.com/reactor/reactor-core/issues/2352)
+        // - Each deduplication key gets its own Group
+        // - Buffer max in-flight groups bounded in Duration and size
+        Scheduler scheduler = Schedulers.single(sourceScheduler);
         return Flux.from(publisher)
-            .groupBy(deduplication::extractKey, config.getDeduplicationSourcePrefetch())
-            .flatMap(this::deduplicateGroup, config.getDeduplicationConcurrency());
+            .publishOn(scheduler, config.getDeduplicationSourcePrefetch())
+            .groupBy(deduplication::extractKey)
+            .flatMap(groupedFlux -> deduplicateGroup(groupedFlux, scheduler), config.getDeduplicationConcurrency())
+            .subscribeOn(scheduler);
     }
 
-    private Mono<T> deduplicateGroup(GroupedFlux<Object, T> groupedFlux) {
-        return groupedFlux.take(config.getDeduplicationDuration(), DEDUPLICATING_SCHEDULER)
+    private Mono<T> deduplicateGroup(GroupedFlux<Object, T> groupedFlux, Scheduler scheduler) {
+        return groupedFlux.take(config.getDeduplicationDuration(), scheduler)
             .take(config.getMaxDeduplicationSize())
             .reduce(deduplication::reduceDuplicates);
     }
