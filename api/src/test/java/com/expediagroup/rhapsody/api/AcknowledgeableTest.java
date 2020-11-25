@@ -382,7 +382,9 @@ public class AcknowledgeableTest {
             .expectComplete()
             .verify();
 
-        Flux.from(publisher).subscribe();
+        Flux.from(publisher).subscribe(
+            data -> {},
+            error -> { throw error instanceof  RuntimeException ? RuntimeException.class.cast(error) : new RuntimeException(error); });
     }
 
     private Collection<String> extractCharacters(String string) {
