@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import reactor.core.publisher.Flux;
+import reactor.util.retry.Retry;
 
 public final class ResubscribingTransformer<T> implements Function<Publisher<T>, Publisher<T>> {
 
@@ -39,11 +40,11 @@ public final class ResubscribingTransformer<T> implements Function<Publisher<T>,
     }
 
     private Flux<T> applyResubscription(Publisher<T> publisher) {
-        return Flux.from(publisher).retryWhen(this::scheduleResubscription);
+        return Flux.from(publisher).retryWhen(Retry.from(this::scheduleResubscription));
     }
 
-    private Flux<?> scheduleResubscription(Flux<Throwable> errorFlux) {
-        return errorFlux
+    private Flux<?> scheduleResubscription(Flux<Retry.RetrySignal> signals) {
+        return signals.map(Retry.RetrySignal::failure)
             .doOnNext(error -> LOGGER.warn("An Error has occurred! Scheduling resubscription: name={} delay={}", config.getName(), config.getDelay(), error))
             .delayElements(config.getDelay())
             .doOnNext(error -> LOGGER.info("Attempting resubscription from Error: name={}", config.getName(), error));
