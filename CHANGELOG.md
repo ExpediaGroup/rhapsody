@@ -4,13 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.5.8]
+## [0.5.8 - 0.5.9]
 
-rhapsody `0.5.8` is a beta release containing updates outlined below.
+rhapsody `0.5.8` - `0.5.9` are beta releases containing updates outlined below.
 
 ### Fixes
 
 * ResubscribingTransformer no longer uses deprecated `retryWhen`
+* SenderFactories no longer use deprecated `retry`
 
 ## [0.5.7]
 
