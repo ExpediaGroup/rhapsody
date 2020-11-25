@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.8]
+
+rhapsody `0.5.8` is a beta release containing updates outlined below.
+
+### Fixes
+
+* ResubscribingTransformer no longer uses deprecated `retryWhen`
+
 ## [0.5.7]
 
 rhapsody `0.5.7` is a beta release containing updates outlines below
@@ -88,6 +96,15 @@ rhapsody `0.4.1` is a beta release containing updates outlined below.
 ### Fixes
 
 * OpenTracing code uses non-deprecated methods from 0.32.0
+
+## [0.3.6 - 0.3.7]
+
+rhapsody `0.3.6` - `0.3.7` are beta releases containing updates outlined below.
+
+### Fixes
+
+* Addressed bug where Work Buffering and Deduplication can drop items under high load. See relevant [Reactor issue](https://github.com/reactor/reactor-core/issues/2352)
+* ResubscribingTransformer no longer uses deprecated `retryWhen`
 
 ## [0.3.5]
 
