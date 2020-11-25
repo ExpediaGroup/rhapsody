@@ -36,6 +36,7 @@ import reactor.rabbitmq.OutboundMessageResult;
 import reactor.rabbitmq.SendOptions;
 import reactor.rabbitmq.Sender;
 import reactor.rabbitmq.SenderOptions;
+import reactor.util.retry.Retry;
 
 public class RabbitMQSenderFactory<T> {
 
@@ -108,7 +109,7 @@ public class RabbitMQSenderFactory<T> {
     private <M extends OutboundMessage> Flux<OutboundMessageResult<M>> sendSerialized(Flux<M> messages, SendOptions sendOptions) {
         return sender.sendWithTypedPublishConfirms(messages, sendOptions)
             .doOnError(error -> LOGGER.warn("An Error was encountered while trying to send to RabbitMQ. resubscribeOnError={}", resubscribeOnError, error))
-            .retry(error -> resubscribeOnError);
+            .retryWhen(Retry.indefinitely().filter(error -> resubscribeOnError));
     }
 
     private Acknowledgeable<OutboundMessageResult<CorrelableOutboundMessage<T>>>

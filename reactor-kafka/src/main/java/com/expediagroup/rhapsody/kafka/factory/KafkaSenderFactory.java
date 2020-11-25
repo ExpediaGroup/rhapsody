@@ -37,6 +37,7 @@ import reactor.kafka.sender.KafkaSender;
 import reactor.kafka.sender.SenderOptions;
 import reactor.kafka.sender.SenderRecord;
 import reactor.kafka.sender.SenderResult;
+import reactor.util.retry.Retry;
 
 public class KafkaSenderFactory<K, V> {
 
@@ -130,7 +131,7 @@ public class KafkaSenderFactory<K, V> {
         return senderRecords
             .transform(kafkaSender::send)
             .doOnError(error -> LOGGER.warn("An Error was encountered while trying to send to Kafka. resubscribeOnError={}", resubscribeOnError, error))
-            .retry(error -> resubscribeOnError);
+            .retryWhen(Retry.indefinitely().filter(error -> resubscribeOnError));
     }
 
     private SenderRecord<K, V, Acknowledgeable<V>> createAcknowledgeableValuedSenderRecord(Acknowledgeable<ProducerRecord<K, V>> acknowledgeable) {
