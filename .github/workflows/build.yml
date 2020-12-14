@@ -25,7 +25,8 @@ jobs:
     if: github.ref == 'refs/heads/master'
     steps:
       - name: Publish SNAPSHOT Artifacts
-        run: mvn deploy --settings ../.mvn/settings/mvn-settings.xml -B -U -P oss-snapshot -DskipTests=true
+        uses: actions/checkout@v2
+        run: mvn deploy --settings ./.mvn/settings/mvn-settings.xml -B -U -P oss-snapshot -DskipTests=true
         env:
           SONATYPE_JIRA_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
           SONATYPE_JIRA_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
