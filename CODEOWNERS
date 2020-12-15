@@ -1,0 +1,14 @@
+# Code owners have rights to review & merge pull requests and create new releases.
+#
+# How to create a new release:
+# Step 0) Ensure local repository is up to date:
+#         `git co master && git pull upstream master`
+# Step 1) Push and checkout release branch for version `x.y.z`
+#         `git push upstream master:x.y.z && git co -t upstream/x.y.z`
+# Step 2) Update any necessary documentation (README, CHANGELOG, Wiki, etc.) and push
+# Step 3) Update pom versions, commit, and push
+#         `mvn release:prepare -Dresume=false -DskipTests -Darguments="-DskipTests"`
+# Step 4) Create a release targeting tagged commit on GitHub. Wait for release GitHub Action to complete
+# Step 5) PR and merge release branch to `master`
+#
+* @Sage-Pierce
