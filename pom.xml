@@ -91,6 +91,7 @@
                         <exclude>**/pom.xml</exclude>
                         <exclude>**/README</exclude>
                         <exclude>**/resources/**</exclude>
+                        <exclude>.github/**</exclude>
                         <exclude>.mvn/**</exclude>
                         <exclude>assets/**</exclude>
                         <exclude>mvnw.cmd</exclude>
@@ -236,6 +237,12 @@
                                 <goals>
                                     <goal>sign</goal>
                                 </goals>
+                                <configuration>
+                                    <gpgArguments>
+                                        <arg>--pinentry-mode</arg>
+                                        <arg>loopback</arg>
+                                    </gpgArguments>
+                                </configuration>
                             </execution>
                         </executions>
                     </plugin>
