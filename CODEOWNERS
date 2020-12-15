@@ -8,7 +8,7 @@
 # Step 2) Update any necessary documentation (README, CHANGELOG, Wiki, etc.) and push
 # Step 3) Update pom versions, commit, and push
 #         `mvn release:prepare -Dresume=false -DskipTests -Darguments="-DskipTests"`
-# Step 4) Create a release targeting tagged commit on GitHub. Wait for release GitHub Action to complete
-# Step 5) PR and merge release branch to `master`
+# Step 4) In GitHub, publish a release for created tag (`rhapsody-x.y.z`) on release branch
+# Step 5) Await GitHub Action execution. On success, PR and merge release branch to `master`
 #
 * @Sage-Pierce
