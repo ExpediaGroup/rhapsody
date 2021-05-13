@@ -17,6 +17,8 @@ package com.expediagroup.rhapsody.core.stanza;
 
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.expediagroup.rhapsody.util.Throwing;
+
 import reactor.core.Disposable;
 
 /**
@@ -25,6 +27,8 @@ import reactor.core.Disposable;
  * @param <C> The type modeling configuration information for this Stanza
  */
 public abstract class Stanza<C extends StanzaConfig> {
+    
+    public enum State { STOPPED, STARTING, STARTED }
 
     private static final Disposable EMPTY = () -> {};
 
@@ -36,11 +40,28 @@ public abstract class Stanza<C extends StanzaConfig> {
         if (!disposableReference.compareAndSet(EMPTY, STARTING) && !disposableReference.get().isDisposed()) {
             throw new UnsupportedOperationException("Cannot start Stanza that is already starting/started");
         }
-        disposableReference.set(startDisposable(config));
+
+        try {
+            disposableReference.set(startDisposable(config));
+        } catch (Throwable error) {
+            disposableReference.set(EMPTY);
+            throw Throwing.propagate(error);
+        }
     }
 
     public final synchronized void stop() {
         disposableReference.getAndSet(EMPTY).dispose();
+    }
+
+    public final State state() {
+        Disposable disposable = disposableReference.get();
+        if (disposable == STARTING) {
+            return State.STARTING;
+        } else if (disposable == EMPTY || disposable.isDisposed()) {
+            return State.STOPPED;
+        } else {
+            return State.STARTED;
+        }
     }
 
     protected abstract Disposable startDisposable(C config);
