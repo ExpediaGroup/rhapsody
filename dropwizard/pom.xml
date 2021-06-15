@@ -41,6 +41,10 @@
         <!--Project Dependencies-->
         <dependency>
             <groupId>com.expediagroup</groupId>
+            <artifactId>rhapsody-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.expediagroup</groupId>
             <artifactId>rhapsody-core</artifactId>
         </dependency>
 
