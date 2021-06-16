@@ -89,6 +89,8 @@ public abstract class ManagedStanzaBundle<T, C extends StanzaConfig> implements 
         void start();
 
         void stop();
+
+        String state();
     }
 
     private final class ManagedStanzaLifeCycleListener extends AbstractLifeCycle.AbstractLifeCycleListener implements ManagedStanzaLifeCycleListenerMBean {
@@ -127,6 +129,11 @@ public abstract class ManagedStanzaBundle<T, C extends StanzaConfig> implements 
         @Override
         public void stop() {
             stanza.stop();
+        }
+
+        @Override
+        public String state() {
+            return stanza.state().name();
         }
 
         private void register(C stanzaConfig) {
