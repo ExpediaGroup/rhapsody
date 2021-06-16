@@ -15,10 +15,14 @@
  */
 package com.expediagroup.rhapsody.core.transformer;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 import org.reactivestreams.Publisher;
+
+import com.expediagroup.rhapsody.core.metrics.MeterKey;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
@@ -27,18 +31,18 @@ import reactor.core.publisher.Flux;
 
 public final class MetricsTransformer<T> implements Function<Publisher<T>, Publisher<T>> {
 
-    private final AtomicInteger subscribers = new AtomicInteger();
+    private static final Map<MeterKey, AtomicInteger> SUBSCRIBERS_BY_BASE_METER_KEY = new ConcurrentHashMap<>();
+
+    private final AtomicInteger subscribers;
 
     private final Counter items;
 
     private final Counter errors;
 
     public MetricsTransformer(MetricsConfig config, MeterRegistry meterRegistry) {
-        Gauge.builder(config.getName() + ".subscribers", subscribers, Number::doubleValue)
-            .tags(config.getTags())
-            .baseUnit("subscribers")
-            .description("Number of current Subscribers")
-            .register(meterRegistry);
+        MeterKey baseMeterKey = new MeterKey(config.getName(), config.getTags());
+
+        this.subscribers = SUBSCRIBERS_BY_BASE_METER_KEY.computeIfAbsent(baseMeterKey, subscribersRegistrar(meterRegistry));
 
         this.items = Counter.builder(config.getName() + ".items")
             .tags(config.getTags())
@@ -60,5 +64,17 @@ public final class MetricsTransformer<T> implements Function<Publisher<T>, Publi
             .doOnNext(t -> items.increment())
             .doOnError(error -> errors.increment())
             .doFinally(signalType -> subscribers.decrementAndGet());
+    }
+
+    private static Function<MeterKey, AtomicInteger> subscribersRegistrar(MeterRegistry meterRegistry) {
+        return baseMeterKey -> {
+            AtomicInteger subscribers = new AtomicInteger();
+            Gauge.builder(baseMeterKey.getName() + ".subscribers", subscribers, Number::doubleValue)
+                .tags(baseMeterKey.getTags())
+                .baseUnit("subscribers")
+                .description("Number of current Subscribers")
+                .register(meterRegistry);
+            return subscribers;
+        };
     }
 }
