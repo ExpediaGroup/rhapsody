@@ -5,7 +5,7 @@
     <parent>
         <groupId>com.expediagroup</groupId>
         <artifactId>rhapsody-parent</artifactId>
-        <version>0.5.14-SNAPSHOT</version>
+        <version>0.5.14</version>
         <relativePath>../parent/pom.xml</relativePath>
     </parent>
 
