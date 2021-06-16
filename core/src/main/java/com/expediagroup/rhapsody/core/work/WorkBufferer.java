@@ -24,6 +24,7 @@ import com.expediagroup.rhapsody.api.Acknowledgeable;
 import com.expediagroup.rhapsody.api.Work;
 import com.expediagroup.rhapsody.api.WorkHeader;
 import com.expediagroup.rhapsody.api.WorkType;
+import com.expediagroup.rhapsody.util.Defaults;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.GroupedFlux;
@@ -43,9 +44,7 @@ import reactor.core.scheduler.Schedulers;
 public final class WorkBufferer<T> implements Function<Publisher<T>, Flux<List<T>>> {
 
     private static final Scheduler DEFAULT_SCHEDULER = Schedulers.newBoundedElastic(
-        Runtime.getRuntime().availableProcessors() * 10,
-        Integer.MAX_VALUE,
-        WorkBufferer.class.getSimpleName());
+        Defaults.THREAD_CAP, Integer.MAX_VALUE, WorkBufferer.class.getSimpleName());
 
     private final WorkBufferConfig config;
 

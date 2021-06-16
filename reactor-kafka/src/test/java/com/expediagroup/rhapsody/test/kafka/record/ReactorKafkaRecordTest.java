@@ -22,9 +22,7 @@ import java.util.function.Consumer;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.Test;
-import org.reactivestreams.Publisher;
 
-import com.expediagroup.rhapsody.core.adapter.Adapters;
 import com.expediagroup.rhapsody.core.transformer.AutoAcknowledgementConfig;
 import com.expediagroup.rhapsody.kafka.avro.test.TestSchemaRegistryFactory;
 import com.expediagroup.rhapsody.kafka.extractor.ConsumerRecordExtraction;
@@ -52,7 +50,7 @@ public class ReactorKafkaRecordTest {
 
     private static final String TOPIC = ReactorKafkaRecordTest.class.getSimpleName();
 
-    private final Consumer<TestHeaded> consumer = Adapters.toSendingConsumer(createSender());
+    private final Consumer<TestHeaded> consumer = createSender();
 
     private final Flux<ConsumerRecord<String, TestHeaded>> recordFlux = createPublisher();
 
@@ -72,9 +70,10 @@ public class ReactorKafkaRecordTest {
             .verify();
     }
 
-    private static Consumer<Publisher<TestHeaded>> createSender() {
-        return values -> new KafkaValueSenderFactory<TestHeaded>(KAFKA_CONFIG_FACTORY)
-            .sendValues(values, work -> TOPIC, TestHeaded::getData)
+    private static Consumer<TestHeaded> createSender() {
+        KafkaValueSenderFactory<TestHeaded> senderFactory = new KafkaValueSenderFactory<>(KAFKA_CONFIG_FACTORY);
+        return value -> Flux.just(value)
+            .transform(senderFactory.sendValues(TOPIC, TestHeaded::getData))
             .subscribe(new FailureLoggingSenderSubscriber<>());
     }
 

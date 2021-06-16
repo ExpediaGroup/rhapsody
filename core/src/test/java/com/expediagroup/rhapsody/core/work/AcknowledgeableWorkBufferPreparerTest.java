@@ -215,7 +215,7 @@ public class AcknowledgeableWorkBufferPreparerTest {
         AcknowledgeableTestWork acknowledgeableWork = new AcknowledgeableTestWork(TestWork.create(WorkType.INTENT, "URL"));
 
         Future<Void> emitted = Flux.from(preparer.apply(Collections.singletonList(acknowledgeableWork)))
-            .subscribeOn(Schedulers.elastic())
+            .subscribeOn(Schedulers.boundedElastic())
             .then()
             .toFuture();
 

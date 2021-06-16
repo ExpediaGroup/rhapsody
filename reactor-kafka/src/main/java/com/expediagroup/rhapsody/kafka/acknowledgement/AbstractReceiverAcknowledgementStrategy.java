@@ -25,10 +25,8 @@ import org.reactivestreams.Publisher;
 import com.expediagroup.rhapsody.api.Acknowledgeable;
 import com.expediagroup.rhapsody.kafka.factory.AcknowledgeableConsumerRecordFactory;
 
-import reactor.core.publisher.EmitterProcessor;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxProcessor;
-import reactor.core.publisher.FluxSink;
+import reactor.core.publisher.Sinks;
 import reactor.kafka.receiver.ReceiverRecord;
 
 abstract class AbstractReceiverAcknowledgementStrategy implements ReceiverAcknowledgementStrategy {
@@ -45,11 +43,10 @@ abstract class AbstractReceiverAcknowledgementStrategy implements ReceiverAcknow
 
     protected final <K, V> Publisher<Acknowledgeable<ConsumerRecord<K, V>>>
     transform(Publisher<? extends ReceiverRecord<K, V>> source, AcknowledgeableConsumerRecordFactory<K, V> acknowledgeableFactory, long maxInFlight) {
-        FluxProcessor<Acknowledgeable<ConsumerRecord<K, V>>, Acknowledgeable<ConsumerRecord<K, V>>> manualProcessor = EmitterProcessor.create();
-        FluxSink<Acknowledgeable<ConsumerRecord<K, V>>> sink = manualProcessor.sink();
+        Sinks.Empty<Acknowledgeable<ConsumerRecord<K, V>>> sink = Sinks.empty();
         return Flux.<ReceiverRecord<K, V>>from(source)
-            .map(receiverRecord -> acknowledgeableFactory.create(receiverRecord, receiverRecord.receiverOffset()::acknowledge, sink::error))
-            .mergeWith(manualProcessor)
+            .map(receiverRecord -> acknowledgeableFactory.create(receiverRecord, receiverRecord.receiverOffset()::acknowledge, sink::tryEmitError))
+            .mergeWith(sink.asMono())
             .transform(createOperator(maxInFlight));
     }
 

@@ -31,11 +31,9 @@ import org.reactivestreams.Publisher;
 
 import com.expediagroup.rhapsody.test.TestAcknowledgeable;
 
-import reactor.core.publisher.EmitterProcessor;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxProcessor;
-import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.Sinks;
 import reactor.test.StepVerifier;
 
 import static org.junit.Assert.assertEquals;
@@ -326,18 +324,17 @@ public class AcknowledgeableTest {
     public void publishedAcknowledgeableNacknowledgesAfterUpstreamError() {
         TestAcknowledgeable acknowledgeable = new TestAcknowledgeable("DATA");
 
-        FluxProcessor<String, String> processor = EmitterProcessor.create();
-        FluxSink<String> sink = processor.sink();
+        Sinks.Many<String> sink = Sinks.many().multicast().onBackpressureBuffer();
 
-        Function<String, Flux<String>> stringToFlux = data -> processor;
+        Function<String, Flux<String>> stringToFlux = data -> sink.asFlux();
 
         StepVerifier.create(Acknowledgeable.publishing(stringToFlux).apply(acknowledgeable))
             .expectSubscription()
-            .then(() -> sink.next("D"))
+            .then(() -> sink.tryEmitNext("D"))
             .consumeNextWith(Acknowledgeable.consuming(character -> assertEquals("D", character), Acknowledgeable::acknowledge))
             .then(() -> assertFalse(acknowledgeable.isAcknowledged()))
             .then(() -> assertFalse(acknowledgeable.isNacknowledged()))
-            .then(() -> sink.error(new IllegalArgumentException()))
+            .then(() -> sink.tryEmitError(new IllegalArgumentException()))
             .then(() -> assertFalse(acknowledgeable.isAcknowledged()))
             .then(() -> assertTrue(acknowledgeable.getError().map(IllegalArgumentException.class::isInstance).orElse(false)))
             .expectError()

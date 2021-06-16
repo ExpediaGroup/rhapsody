@@ -39,6 +39,7 @@ import com.expediagroup.rhapsody.kafka.factory.KafkaValueFluxFactory;
 import com.expediagroup.rhapsody.kafka.factory.KafkaValueSenderFactory;
 import com.expediagroup.rhapsody.kafka.sending.AcknowledgingLoggingSenderSubscriber;
 import com.expediagroup.rhapsody.kafka.test.TestKafkaFactory;
+import com.expediagroup.rhapsody.util.Defaults;
 
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Scheduler;
@@ -66,7 +67,8 @@ public class KafkaErrorHandling {
 
     private static final String TOPIC_2 = "TOPIC_2";
 
-    private static final Scheduler SCHEDULER = Schedulers.newElastic(KafkaErrorHandling.class.getSimpleName());
+    private static final Scheduler SCHEDULER = Schedulers.newBoundedElastic(
+        Defaults.THREAD_CAP, Integer.MAX_VALUE, KafkaErrorHandling.class.getSimpleName());
 
     public static void main(String[] args) throws Exception {
         //Step 1) Create Kafka Producer Config for Producer that backs Sender's Subscriber
@@ -139,7 +141,7 @@ public class KafkaErrorHandling {
         //key for each data item, which will cause these items to show up in the order we emit them
         //on the same topic-partition
         Flux.just("test_1", "test_2")
-            .subscribeOn(Schedulers.elastic())
+            .subscribeOn(Schedulers.boundedElastic())
             .transform(new KafkaValueSenderFactory<String>(kafkaSubscriberConfig).sendValues(TOPIC_1, string -> "KEY"))
             .subscribe();
 

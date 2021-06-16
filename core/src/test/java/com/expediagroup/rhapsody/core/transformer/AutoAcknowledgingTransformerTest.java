@@ -21,9 +21,7 @@ import org.junit.Test;
 import org.reactivestreams.Subscription;
 
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxProcessor;
-import reactor.core.publisher.FluxSink;
-import reactor.core.publisher.UnicastProcessor;
+import reactor.core.publisher.Sinks;
 import reactor.test.StepVerifier;
 
 import static org.junit.Assert.assertFalse;
@@ -35,11 +33,9 @@ public class AutoAcknowledgingTransformerTest {
 
     private static final AutoAcknowledgementConfig CONFIG = new AutoAcknowledgementConfig(STEP_DURATION.multipliedBy(2), STEP_DURATION.multipliedBy(4));
 
-    private final FluxProcessor<AcknowledgeableData, AcknowledgeableData> processor = UnicastProcessor.create();
+    private final Sinks.Many<AcknowledgeableData> sink = Sinks.many().unicast().onBackpressureBuffer();
 
-    private final FluxSink<AcknowledgeableData> sink = processor.sink();
-
-    private final Flux<AcknowledgeableData> downstream = processor
+    private final Flux<AcknowledgeableData> downstream = sink.asFlux()
         .transform(new AutoAcknowledgingTransformer<>(CONFIG, flux -> flux.takeLast(1), AcknowledgeableData::ack));
 
     @Test
@@ -47,7 +43,7 @@ public class AutoAcknowledgingTransformerTest {
         AcknowledgeableData data = new AcknowledgeableData();
 
         StepVerifier.create(downstream)
-            .then(() -> sink.next(data))
+            .then(() -> sink.tryEmitNext(data))
             .expectNext(data)
             .thenAwait(CONFIG.getInterval())
             .then(() -> assertFalse(data.isAcked()))
@@ -55,7 +51,7 @@ public class AutoAcknowledgingTransformerTest {
             .then(() -> assertFalse(data.isAcked()))
             .thenAwait(STEP_DURATION.multipliedBy(2))
             .then(() -> assertTrue(data.isAcked()))
-            .then(sink::complete)
+            .then(sink::tryEmitComplete)
             .expectComplete()
             .verify();
     }
@@ -66,10 +62,10 @@ public class AutoAcknowledgingTransformerTest {
         AcknowledgeableData data2 = new AcknowledgeableData();
 
         StepVerifier.create(downstream)
-            .then(() -> sink.next(data1))
+            .then(() -> sink.tryEmitNext(data1))
             .expectNext(data1)
             .thenAwait(CONFIG.getInterval().plus(STEP_DURATION))
-            .then(() -> sink.next(data2))
+            .then(() -> sink.tryEmitNext(data2))
             .expectNext(data2)
             .then(() -> assertFalse(data1.isAcked()))
             .then(() -> assertFalse(data2.isAcked()))
@@ -79,7 +75,7 @@ public class AutoAcknowledgingTransformerTest {
             .thenAwait(CONFIG.getInterval())
             .then(() -> assertTrue(data1.isAcked()))
             .then(() -> assertTrue(data2.isAcked()))
-            .then(sink::complete)
+            .then(sink::tryEmitComplete)
             .expectComplete()
             .verify();
     }
@@ -89,9 +85,9 @@ public class AutoAcknowledgingTransformerTest {
         AcknowledgeableData data = new AcknowledgeableData();
 
         StepVerifier.create(downstream)
-            .then(() -> sink.next(data))
+            .then(() -> sink.tryEmitNext(data))
             .expectNext(data)
-            .then(sink::complete)
+            .then(sink::tryEmitComplete)
             .expectComplete()
             .verify();
 
@@ -103,7 +99,7 @@ public class AutoAcknowledgingTransformerTest {
         AcknowledgeableData data = new AcknowledgeableData();
 
         StepVerifier.create(downstream)
-            .then(() -> sink.next(data))
+            .then(() -> sink.tryEmitNext(data))
             .expectNext(data)
             .consumeSubscriptionWith(Subscription::cancel)
             .thenCancel()

@@ -42,6 +42,7 @@ import com.expediagroup.rhapsody.kafka.acknowledgement.OrderManagingReceiverAckn
 import com.expediagroup.rhapsody.kafka.acknowledgement.ReceiverAcknowledgementStrategy;
 import com.expediagroup.rhapsody.kafka.extractor.ConsumerRecordExtraction;
 import com.expediagroup.rhapsody.util.ConfigLoading;
+import com.expediagroup.rhapsody.util.Defaults;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.GroupedFlux;
@@ -142,7 +143,8 @@ public class KafkaFluxFactory<K, V> {
         receiverOptions.addAssignListener(assignedPartitions::complete);
 
         // Use a dedicated and identifiable Scheduler for publishing
-        Scheduler scheduler = Schedulers.newElastic(KafkaFluxFactory.class.getSimpleName() + "-" + extractClientId(receiverOptions));
+        String schedulerName = KafkaFluxFactory.class.getSimpleName() + "-" + extractClientId(receiverOptions);
+        Scheduler scheduler = Schedulers.newBoundedElastic(Defaults.THREAD_CAP, Integer.MAX_VALUE, schedulerName);
         receiverOptions.schedulerSupplier(() -> scheduler);
 
         // 1) KafkaReceivers are not thread-safe and therefore must not be shared among

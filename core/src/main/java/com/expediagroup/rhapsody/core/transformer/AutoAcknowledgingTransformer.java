@@ -22,11 +22,9 @@ import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxProcessor;
-import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.Sinks;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
@@ -53,29 +51,33 @@ public final class AutoAcknowledgingTransformer<T, U> implements Function<Publis
 
     @Override
     public Flux<T> apply(Publisher<T> publisher) {
-        FluxSink<T> acknowledgingSink = createAcknowledgingSink();
+        Sinks.Many<T> acknowledgingSink = createAcknowledgingSink();
         return Flux.from(publisher)
-            .concatMap(t -> Mono.just(t).doAfterTerminate(() -> acknowledgingSink.next(t)), config.getPrefetch())
-            .doOnCancel(acknowledgingSink::complete)
-            .doAfterTerminate(acknowledgingSink::complete);
+            .concatMap(t -> Mono.just(t).doAfterTerminate(() -> acknowledgingSink.tryEmitNext(t)), config.getPrefetch())
+            .doOnCancel(acknowledgingSink::tryEmitComplete)
+            .doAfterTerminate(acknowledgingSink::tryEmitComplete);
     }
 
-    private FluxSink<T> createAcknowledgingSink() {
-        FluxProcessor<T, T> processor = DirectProcessor.create();
-        processor.window(config.getInterval(), SCHEDULER)
+    private Sinks.Many<T> createAcknowledgingSink() {
+        // We want to use an "unsafe" Sink here because:
+        // 1. The Sink 'next' emissions should only be interacted with from concatMap
+        // 2. We do not want to drop signals, including if completion is not serialized with 'next'
+        Sinks.Many<T> sink = Sinks.unsafe().many().multicast().directBestEffort();
+        Flux<T> flux = sink.asFlux();
+        flux.window(config.getInterval(), SCHEDULER)
             .doOnError(error -> LOGGER.warn("Failed to window Acknowledgements. Resubscribing...", error))
             .retry()
             .concatMap(reducer)
-            .flatMapSequential(u -> applyDelay(processor, u), calculateMaxConcurrentAcknowledgementWindows().intValue())
+            .flatMapSequential(u -> applyDelay(flux, u), calculateMaxConcurrentAcknowledgementWindows().intValue())
             .doOnNext(acknowledger)
             .doOnError(error -> LOGGER.warn("Failed to run acknowledger. Resubscribing...", error))
             .retry()
             .subscribe();
-        return processor.sink();
+        return sink;
     }
 
     private Mono<U> applyDelay(Flux<?> upstream, U reduced) {
-        return Mono.just(reduced).delayUntil(u -> Mono.first(upstream.ignoreElements(), Mono.delay(config.getDelay(), SCHEDULER)));
+        return Mono.just(reduced).delayUntil(u -> Mono.firstWithSignal(upstream.ignoreElements(), Mono.delay(config.getDelay(), SCHEDULER)));
     }
 
     private Long calculateMaxConcurrentAcknowledgementWindows() {

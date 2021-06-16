@@ -16,13 +16,11 @@
 package com.expediagroup.rhapsody.core.transformer;
 
 import java.time.Duration;
-import java.util.function.Consumer;
 
 import org.junit.Test;
 
-import reactor.core.publisher.EmitterProcessor;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxProcessor;
+import reactor.core.publisher.Sinks;
 import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
 
@@ -38,18 +36,16 @@ public class RateLimitingTransformerTest {
 
     @Test
     public void publishersCanBeRateLimited() {
-        FluxProcessor<String, String> processor = EmitterProcessor.create();
+        Sinks.Many<String> sink = Sinks.many().multicast().onBackpressureBuffer();
 
-        Consumer<String> consumer = processor.sink()::next;
-
-        Flux<String> rateLimitedFlux = processor.publishOn(Schedulers.single())
+        Flux<String> rateLimitedFlux = sink.asFlux().publishOn(Schedulers.single())
             .transform(new RateLimitingTransformer<>(config));
 
         StepVerifier.create(rateLimitedFlux)
             .then(() -> {
-                consumer.accept("ONE");
-                consumer.accept("TWO");
-                consumer.accept("THREE");
+                sink.tryEmitNext("ONE");
+                sink.tryEmitNext("TWO");
+                sink.tryEmitNext("THREE");
             })
             .expectNext("ONE")
             .expectNoEvent(PERMIT_DURATION.minus(STEP_DURATION))

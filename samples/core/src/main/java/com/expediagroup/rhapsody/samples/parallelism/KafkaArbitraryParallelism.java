@@ -36,6 +36,7 @@ import com.expediagroup.rhapsody.kafka.factory.KafkaFluxFactory;
 import com.expediagroup.rhapsody.kafka.factory.KafkaValueFluxFactory;
 import com.expediagroup.rhapsody.kafka.factory.KafkaValueSenderFactory;
 import com.expediagroup.rhapsody.kafka.test.TestKafkaFactory;
+import com.expediagroup.rhapsody.util.Defaults;
 
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Scheduler;
@@ -60,7 +61,8 @@ public class KafkaArbitraryParallelism {
 
     private static final long MAX_SLEEP_MILLIS = 10;
 
-    private static final Scheduler SCHEDULER = Schedulers.newElastic(KafkaArbitraryParallelism.class.getSimpleName());
+    private static final Scheduler SCHEDULER = Schedulers.newBoundedElastic(
+        Defaults.THREAD_CAP, Integer.MAX_VALUE, KafkaArbitraryParallelism.class.getSimpleName());
 
     public static void main(String[] args) throws Exception {
         //Step 1) Create Kafka Producer Config for Producer that backs Sender's Subscriber
@@ -107,7 +109,7 @@ public class KafkaArbitraryParallelism {
 
         //Step 4) Produce random UUIDs to the topic we're processing above
         Flux.range(0, NUM_SAMPLES)
-            .subscribeOn(Schedulers.elastic())
+            .subscribeOn(Schedulers.boundedElastic())
             .map(i -> UUID.randomUUID())
             .map(UUID::toString)
             .transform(new KafkaValueSenderFactory<String>(kafkaSubscriberConfig).sendValues(TOPIC, Function.identity()))

@@ -17,6 +17,7 @@ package com.expediagroup.rhapsody.core.factory;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 
 import org.reactivestreams.Subscriber;
 
@@ -24,13 +25,16 @@ import com.expediagroup.rhapsody.api.Acknowledgeable;
 import com.expediagroup.rhapsody.api.PublisherFactory;
 import com.expediagroup.rhapsody.api.SubscriberFactory;
 import com.expediagroup.rhapsody.core.adapter.Adapters;
+import com.expediagroup.rhapsody.util.Defaults;
 
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.WorkQueueProcessor;
+import reactor.core.publisher.Sinks;
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 
 public final class InMemoryFactory {
 
-    private static final Map<String, WorkQueueProcessor> PROCESSORS_BY_NAME = new ConcurrentHashMap<>();
+    private static final Map<String, SinkFlux> SINK_FLUXES_BY_NAME = new ConcurrentHashMap<>();
 
     private InMemoryFactory() {
 
@@ -41,7 +45,8 @@ public final class InMemoryFactory {
     }
 
     public static <T> Subscriber<T> subscriber(String name) {
-        return Adapters.toSubscriber(getNamedProcessor(name)::onNext);
+        SinkFlux<T> sinkFlux = getNamedSinkFlux(name);
+        return Adapters.toSubscriber(sinkFlux.sinkEmitter());
     }
 
     public static <T> PublisherFactory<T> publisherFactory(String name) {
@@ -53,14 +58,40 @@ public final class InMemoryFactory {
     }
 
     public static <T> Flux<T> publisher(String name) {
-        return getNamedProcessor(name);
+        return InMemoryFactory.<T>getNamedSinkFlux(name).flux();
     }
 
-    private static <T> WorkQueueProcessor<T> getNamedProcessor(String name) {
-        return (WorkQueueProcessor<T>) PROCESSORS_BY_NAME.computeIfAbsent(name, InMemoryFactory::createNamedProcessor);
+    private static <T> SinkFlux<T> getNamedSinkFlux(String name) {
+        return (SinkFlux<T>) SINK_FLUXES_BY_NAME.computeIfAbsent(name, SinkFlux::named);
     }
 
-    private static WorkQueueProcessor createNamedProcessor(String name) {
-        return WorkQueueProcessor.builder().name(name).share(true).build();
+    private static final class SinkFlux<T> {
+
+        private final Sinks.Many<T> sink;
+
+        private final Flux<T> flux;
+
+        private SinkFlux(Sinks.Many<T> sink, Flux<T> flux) {
+            this.sink = sink;
+            this.flux = flux;
+        }
+
+        public static <T> SinkFlux<T> named(String name) {
+            Sinks.Many<T> sink = Sinks.unsafe().many().multicast().onBackpressureBuffer(Integer.MAX_VALUE);
+            Scheduler scheduler = Schedulers.newBoundedElastic(Defaults.THREAD_CAP, Integer.MAX_VALUE, name);
+            return new SinkFlux<>(sink, sink.asFlux().publishOn(scheduler).publish().autoConnect());
+        }
+
+        public Consumer<T> sinkEmitter() {
+            return t -> {
+                synchronized (sink) {
+                    sink.tryEmitNext(t);
+                }
+            };
+        }
+
+        public Flux<T> flux() {
+            return flux;
+        }
     }
 }
