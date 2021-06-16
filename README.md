@@ -1,7 +1,6 @@
 <img src="assets/images/Rhapsody.png" width="25%">
 
 # Rhapsody
-[![Build Status](https://travis-ci.com/ExpediaGroup/rhapsody.svg?branch=master)](https://travis-ci.com/ExpediaGroup/rhapsody)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 Rhapsody is an asynchronous event processing library that builds on the [Reactive Streams Specification](http://www.reactive-streams.org/) to deliver reusable functionalities under the following categories:
