@@ -21,7 +21,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -32,9 +31,8 @@ import com.expediagroup.rhapsody.api.IdentityDeduplication;
 import com.expediagroup.rhapsody.util.Defaults;
 
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxProcessor;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.UnicastProcessor;
+import reactor.core.publisher.Sinks;
 import reactor.test.StepVerifier;
 
 import static org.junit.Assert.assertEquals;
@@ -44,19 +42,17 @@ public class DeduplicatingTransformerTest {
     private static final DeduplicationConfig CONFIG =
         new DeduplicationConfig(Defaults.PREFETCH, Duration.ofMillis(800), 4, Defaults.CONCURRENCY);
 
-    private final FluxProcessor<String, String> processor = UnicastProcessor.create();
+    private final Sinks.Many<String> sink = Sinks.many().multicast().onBackpressureBuffer();
 
-    private final Consumer<String> consumer = processor.sink()::next;
-
-    private final Flux<String> downstream = processor.transform(DeduplicatingTransformer.identity(CONFIG, new IdentityDeduplication<>()));
+    private final Flux<String> downstream = sink.asFlux().transform(DeduplicatingTransformer.identity(CONFIG, new IdentityDeduplication<>()));
 
     @Test
     public void duplicatesAreNotEmitted() {
         StepVerifier.withVirtualTime(() -> downstream)
             .expectSubscription()
             .then(() -> {
-                consumer.accept("ONE");
-                consumer.accept("ONE");
+                sink.tryEmitNext("ONE");
+                sink.tryEmitNext("ONE");
             })
             .expectNoEvent(CONFIG.getDeduplicationDuration())
             .expectNext("ONE")
@@ -69,10 +65,10 @@ public class DeduplicatingTransformerTest {
     public void deduplicatesOnlyWithinDuration() {
         StepVerifier.withVirtualTime(() -> downstream)
             .expectSubscription()
-            .then(() -> consumer.accept("ONE"))
+            .then(() -> sink.tryEmitNext("ONE"))
             .thenAwait(CONFIG.getDeduplicationDuration())
             .expectNext("ONE")
-            .then(() -> consumer.accept("ONE"))
+            .then(() -> sink.tryEmitNext("ONE"))
             .thenAwait(CONFIG.getDeduplicationDuration())
             .expectNext("ONE")
             .expectNoEvent(CONFIG.getDeduplicationDuration())
@@ -85,11 +81,11 @@ public class DeduplicatingTransformerTest {
         StepVerifier.withVirtualTime(() -> downstream)
             .expectSubscription()
             .then(() -> {
-                consumer.accept("ONE");
-                consumer.accept("ONE");
-                consumer.accept("ONE");
-                consumer.accept("ONE");
-                consumer.accept("ONE");
+                sink.tryEmitNext("ONE");
+                sink.tryEmitNext("ONE");
+                sink.tryEmitNext("ONE");
+                sink.tryEmitNext("ONE");
+                sink.tryEmitNext("ONE");
             })
             .expectNext("ONE")
             .expectNoEvent(CONFIG.getDeduplicationDuration())
@@ -102,16 +98,16 @@ public class DeduplicatingTransformerTest {
 
     @Test
     public void dataAreSequentiallyProcessed() {
-        Flux<String> invertedDownstream = processor.transform(DeduplicatingTransformer.identity(CONFIG, new InvertedReducerDeduplication()));
+        Flux<String> invertedDownstream = sink.asFlux().transform(DeduplicatingTransformer.identity(CONFIG, new InvertedReducerDeduplication()));
 
         StepVerifier.create(invertedDownstream)
             .expectSubscription()
-            .then(() -> consumer.accept("ONE"))
+            .then(() -> sink.tryEmitNext("ONE"))
             .thenAwait(Duration.ofMillis(200))
             .then(() -> {
-                consumer.accept("TWO");
-                consumer.accept("TWO");
-                consumer.accept("ONE");
+                sink.tryEmitNext("TWO");
+                sink.tryEmitNext("TWO");
+                sink.tryEmitNext("ONE");
             })
             .thenAwait(CONFIG.getDeduplicationDuration())
             .expectNext("ONE")

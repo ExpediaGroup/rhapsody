@@ -21,6 +21,7 @@ import org.reactivestreams.Publisher;
 
 import com.expediagroup.rhapsody.api.Acknowledgeable;
 import com.expediagroup.rhapsody.api.Deduplication;
+import com.expediagroup.rhapsody.util.Defaults;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.GroupedFlux;
@@ -31,9 +32,7 @@ import reactor.core.scheduler.Schedulers;
 public final class DeduplicatingTransformer<T> implements Function<Publisher<T>, Publisher<T>> {
 
     private static final Scheduler DEFAULT_SCHEDULER = Schedulers.newBoundedElastic(
-        Runtime.getRuntime().availableProcessors() * 10,
-        Integer.MAX_VALUE,
-        DeduplicatingTransformer.class.getSimpleName());
+        Defaults.THREAD_CAP, Integer.MAX_VALUE, DeduplicatingTransformer.class.getSimpleName());
 
     private final DeduplicationConfig config;
 

@@ -25,14 +25,14 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Test;
+import org.reactivestreams.Subscriber;
 
 import com.expediagroup.rhapsody.api.Acknowledgeable;
+import com.expediagroup.rhapsody.core.adapter.Adapters;
 import com.expediagroup.rhapsody.test.TestAcknowledgeable;
 import com.expediagroup.rhapsody.util.Timing;
 
-import reactor.core.publisher.EmitterProcessor;
-import reactor.core.publisher.FluxProcessor;
-import reactor.core.publisher.FluxSink;
+import reactor.core.publisher.Sinks;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -73,17 +73,14 @@ public class AcknowledgementQueuingSubscriberTest {
             }
         });
 
-        FluxProcessor<TestAcknowledgeable, TestAcknowledgeable> upstream = EmitterProcessor.create(1);
-        FluxSink<TestAcknowledgeable> sink = upstream.sink();
-
         List<Acknowledgeable<String>> emitted = new ArrayList<>();
-        FluxProcessor<Acknowledgeable<String>, Acknowledgeable<String>> downstream = EmitterProcessor.create(1);
-        downstream.subscribe(emitted::add);
+        Subscriber<Acknowledgeable<String>> subscriber = Adapters.toSubscriber(emitted::add);
 
-        upstream.subscribe(new AcknowledgementQueuingSubscriber<>(downstream, String::length, OrderManagingAcknowledgementQueue::newWithImmediateErrors, 2));
+        Sinks.Many<TestAcknowledgeable> sink = Sinks.many().multicast().onBackpressureBuffer();
+        sink.asFlux().subscribe(new AcknowledgementQueuingSubscriber<>(subscriber, String::length, OrderManagingAcknowledgementQueue::newWithImmediateErrors, 2));
 
-        sink.next(firstAcknowledgeable);
-        sink.next(secondAcknowledgeable);
+        sink.tryEmitNext(firstAcknowledgeable);
+        sink.tryEmitNext(secondAcknowledgeable);
 
         EXECUTOR.execute(() -> emitted.get(0).acknowledge());
         assertTrue(firstAcknowledgementStarted.get());
@@ -119,30 +116,27 @@ public class AcknowledgementQueuingSubscriberTest {
         TestAcknowledgeable boy = new TestAcknowledgeable("BOY");
         Collection<TestAcknowledgeable> all = Arrays.asList(mom, dad, dog, cat, boy);
 
-        FluxProcessor<TestAcknowledgeable, TestAcknowledgeable> upstream = EmitterProcessor.create(3);
-        FluxSink<TestAcknowledgeable> sink = upstream.sink();
-
         List<Acknowledgeable<String>> emitted = new ArrayList<>();
-        FluxProcessor<Acknowledgeable<String>, Acknowledgeable<String>> downstream = EmitterProcessor.create(1);
-        downstream.subscribe(emitted::add);
+        Subscriber<Acknowledgeable<String>> subscriber = Adapters.toSubscriber(emitted::add);
 
-        upstream.subscribe(new AcknowledgementQueuingSubscriber<>(downstream, String::length, OrderManagingAcknowledgementQueue::newWithImmediateErrors, 2));
+        Sinks.Many<TestAcknowledgeable> sink = Sinks.many().multicast().onBackpressureBuffer();
+        sink.asFlux().subscribe(new AcknowledgementQueuingSubscriber<>(subscriber, String::length, OrderManagingAcknowledgementQueue::newWithImmediateErrors, 2));
 
-        sink.next(mom);
-        sink.next(dad);
-
-        assertTrue(all.stream().noneMatch(TestAcknowledgeable::isAcknowledged));
-        assertTrue(all.stream().noneMatch(TestAcknowledgeable::isNacknowledged));
-        assertEquals(2, emitted.size());
-
-        sink.next(dog);
+        sink.tryEmitNext(mom);
+        sink.tryEmitNext(dad);
 
         assertTrue(all.stream().noneMatch(TestAcknowledgeable::isAcknowledged));
         assertTrue(all.stream().noneMatch(TestAcknowledgeable::isNacknowledged));
         assertEquals(2, emitted.size());
 
-        sink.next(cat);
-        sink.next(boy);
+        sink.tryEmitNext(dog);
+
+        assertTrue(all.stream().noneMatch(TestAcknowledgeable::isAcknowledged));
+        assertTrue(all.stream().noneMatch(TestAcknowledgeable::isNacknowledged));
+        assertEquals(2, emitted.size());
+
+        sink.tryEmitNext(cat);
+        sink.tryEmitNext(boy);
 
         assertTrue(all.stream().noneMatch(TestAcknowledgeable::isAcknowledged));
         assertTrue(all.stream().noneMatch(TestAcknowledgeable::isNacknowledged));
@@ -181,16 +175,14 @@ public class AcknowledgementQueuingSubscriberTest {
         TestAcknowledgeable yeet = new TestAcknowledgeable("YEET");
         Collection<TestAcknowledgeable> all = Arrays.asList(mom, girl, dad, yeet);
 
-        FluxProcessor<TestAcknowledgeable, TestAcknowledgeable> upstream = EmitterProcessor.create(1);
-        FluxSink<TestAcknowledgeable> sink = upstream.sink();
+        Sinks.Many<TestAcknowledgeable> sink = Sinks.many().multicast().onBackpressureBuffer();
 
         List<Acknowledgeable<String>> emitted = new ArrayList<>();
-        FluxProcessor<Acknowledgeable<String>, Acknowledgeable<String>> downstream = EmitterProcessor.create(1);
-        downstream.subscribe(emitted::add);
+        Subscriber<Acknowledgeable<String>> subscriber = Adapters.toSubscriber(emitted::add);
 
-        upstream.subscribe(new AcknowledgementQueuingSubscriber<>(downstream, String::length, OrderManagingAcknowledgementQueue::newWithImmediateErrors, 3));
+        sink.asFlux().subscribe(new AcknowledgementQueuingSubscriber<>(subscriber, String::length, OrderManagingAcknowledgementQueue::newWithImmediateErrors, 3));
 
-        all.forEach(sink::next);
+        all.forEach(sink::tryEmitNext);
 
         assertEquals(3, emitted.size());
 

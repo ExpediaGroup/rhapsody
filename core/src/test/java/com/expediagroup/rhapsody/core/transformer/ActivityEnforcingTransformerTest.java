@@ -17,13 +17,11 @@ package com.expediagroup.rhapsody.core.transformer;
 
 import java.time.Duration;
 import java.util.concurrent.TimeoutException;
-import java.util.function.Consumer;
 
 import org.junit.Test;
 
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxProcessor;
-import reactor.core.publisher.UnicastProcessor;
+import reactor.core.publisher.Sinks;
 import reactor.test.StepVerifier;
 
 public class ActivityEnforcingTransformerTest {
@@ -32,11 +30,9 @@ public class ActivityEnforcingTransformerTest {
 
     private static final ActivityEnforcementConfig CONFIG = new ActivityEnforcementConfig(STEP_DURATION.multipliedBy(10L), Duration.ZERO, STEP_DURATION.dividedBy(10L));
 
-    private final FluxProcessor<String, String> processor = UnicastProcessor.create();
+    private final Sinks.Many<String> sink = Sinks.many().multicast().onBackpressureBuffer();
 
-    private final Consumer<String> consumer = processor.sink()::next;
-
-    private final Flux<String> downstream = processor.transform(new ActivityEnforcingTransformer<>(CONFIG));
+    private final Flux<String> downstream = sink.asFlux().transform(new ActivityEnforcingTransformer<>(CONFIG));
 
     @Test
     public void errorIsEmittedIfStreamIsInactive() {
@@ -51,7 +47,7 @@ public class ActivityEnforcingTransformerTest {
     public void errorIsEmittedIfStreamBecomesInactiveAfterEvents() {
         StepVerifier.create(downstream)
             .thenAwait(STEP_DURATION.multipliedBy(2))
-            .then(() -> consumer.accept("ONE"))
+            .then(() -> sink.tryEmitNext("ONE"))
             .expectNextCount(1)
             .expectNoEvent(CONFIG.getMaxInactivity().minus(STEP_DURATION))
             .expectError(TimeoutException.class)
@@ -62,10 +58,10 @@ public class ActivityEnforcingTransformerTest {
     public void errorIsNotEmittedIfStreamRemainsActive() {
         StepVerifier.create(downstream)
             .thenAwait(STEP_DURATION)
-            .then(() -> consumer.accept("ONE"))
+            .then(() -> sink.tryEmitNext("ONE"))
             .expectNextCount(1)
             .thenAwait(STEP_DURATION)
-            .then(() -> consumer.accept("TWO"))
+            .then(() -> sink.tryEmitNext("TWO"))
             .expectNextCount(1)
             .expectNoEvent(CONFIG.getMaxInactivity().minus(STEP_DURATION))
             .thenCancel()

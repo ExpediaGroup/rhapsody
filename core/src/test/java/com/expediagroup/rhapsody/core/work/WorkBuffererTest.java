@@ -35,9 +35,8 @@ import com.expediagroup.rhapsody.test.TestWork;
 import com.expediagroup.rhapsody.util.Defaults;
 
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxProcessor;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.UnicastProcessor;
+import reactor.core.publisher.Sinks;
 import reactor.test.StepVerifier;
 
 import static org.junit.Assert.assertEquals;
@@ -49,11 +48,9 @@ public class WorkBuffererTest {
     private static final WorkBufferConfig BUFFER_CONFIG =
         new WorkBufferConfig(Defaults.PREFETCH, STEP_DURATION.multipliedBy(4), 8, Defaults.CONCURRENCY);
 
-    private final FluxProcessor<TestWork, TestWork> eventQueue = UnicastProcessor.create();
+    private final Sinks.Many<TestWork> sink = Sinks.many().unicast().onBackpressureBuffer();
 
-    private final Consumer<TestWork> eventConsumer = eventQueue.sink()::next;
-
-    private final Publisher<List<TestWork>> buffer = eventQueue.transform(WorkBufferer.identity(BUFFER_CONFIG));
+    private final Publisher<List<TestWork>> buffer = sink.asFlux().transform(WorkBufferer.identity(BUFFER_CONFIG));
 
     @Test
     public void bufferedCommitsAreImmediatelyEmitted() {
@@ -62,8 +59,8 @@ public class WorkBuffererTest {
 
         StepVerifier.create(buffer)
             .then(() -> {
-                eventConsumer.accept(commit1);
-                eventConsumer.accept(commit2);
+                sink.tryEmitNext(commit1);
+                sink.tryEmitNext(commit2);
             })
             .expectNext(Collections.singletonList(commit1))
             .expectNext(Collections.singletonList(commit2))
@@ -79,9 +76,9 @@ public class WorkBuffererTest {
 
         StepVerifier.create(buffer)
             .then(() -> {
-                eventConsumer.accept(intent);
-                eventConsumer.accept(retry);
-                eventConsumer.accept(cancel);
+                sink.tryEmitNext(intent);
+                sink.tryEmitNext(retry);
+                sink.tryEmitNext(cancel);
             })
             .expectNoEvent(BUFFER_CONFIG.getBufferDuration().minus(STEP_DURATION))
             .expectNext(Arrays.asList(intent, retry, cancel))
@@ -98,12 +95,12 @@ public class WorkBuffererTest {
 
         StepVerifier.create(buffer)
             .then(() -> {
-                eventConsumer.accept(intent);
-                eventConsumer.accept(retry);
-                eventConsumer.accept(cancel);
+                sink.tryEmitNext(intent);
+                sink.tryEmitNext(retry);
+                sink.tryEmitNext(cancel);
             })
             .expectNoEvent(STEP_DURATION)
-            .then(() -> eventConsumer.accept(commit))
+            .then(() -> sink.tryEmitNext(commit))
             .expectNext(Arrays.asList(intent, retry, cancel, commit))
             .thenCancel()
             .verify();
@@ -119,14 +116,14 @@ public class WorkBuffererTest {
 
         StepVerifier.create(buffer)
             .then(() -> {
-                eventConsumer.accept(intent1);
-                eventConsumer.accept(intent2);
+                sink.tryEmitNext(intent1);
+                sink.tryEmitNext(intent2);
             })
             .expectNoEvent(STEP_DURATION)
-            .then(() -> eventConsumer.accept(commit2))
+            .then(() -> sink.tryEmitNext(commit2))
             .expectNext(Arrays.asList(intent2, commit2))
             .expectNoEvent(STEP_DURATION)
-            .then(() -> eventConsumer.accept(commit1))
+            .then(() -> sink.tryEmitNext(commit1))
             .expectNext(Arrays.asList(intent1, commit1))
             .thenCancel()
             .verify();
@@ -137,9 +134,9 @@ public class WorkBuffererTest {
         TestWork intent = TestWork.create(WorkType.INTENT, "SOME/URL");
 
         StepVerifier.create(buffer)
-            .then(() -> LongStream.range(0, BUFFER_CONFIG.getMaxBufferSize() - 1).forEach(i -> eventConsumer.accept(intent)))
+            .then(() -> LongStream.range(0, BUFFER_CONFIG.getMaxBufferSize() - 1).forEach(i -> sink.tryEmitNext(intent)))
             .expectNoEvent(STEP_DURATION)
-            .then(() -> eventConsumer.accept(intent))
+            .then(() -> sink.tryEmitNext(intent))
             .expectNext(LongStream.range(0, BUFFER_CONFIG.getMaxBufferSize()).mapToObj(i -> intent).collect(Collectors.toList()))
             .thenCancel()
             .verify();

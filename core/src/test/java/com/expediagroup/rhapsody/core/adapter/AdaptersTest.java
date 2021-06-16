@@ -21,13 +21,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 import org.junit.Test;
+import org.reactivestreams.Subscriber;
 
 import com.expediagroup.rhapsody.api.Acknowledgeable;
+import com.expediagroup.rhapsody.api.SubscriberFactory;
 import com.expediagroup.rhapsody.test.TestAcknowledgeable;
 
-import reactor.core.publisher.EmitterProcessor;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxProcessor;
+import reactor.core.publisher.Sinks;
 import reactor.core.scheduler.Schedulers;
 
 import static org.junit.Assert.assertTrue;
@@ -39,25 +40,25 @@ public class AdaptersTest {
     public void adaptedAcknowledgeableSubscribersAcknowledgeOnDownstreamError() {
         TestAcknowledgeable acknowledgeable = new TestAcknowledgeable("DATA");
 
-        FluxProcessor<String, String> downstream = EmitterProcessor.create(1);
-        downstream.map(string -> {
+        Subscriber<String> downstream = Adapters.toSubscriber(string -> {
             throw new IllegalArgumentException();
-        }).retry().subscribe();
+        });
 
-        FluxProcessor<Acknowledgeable<String>, Acknowledgeable<String>> upstream = EmitterProcessor.create(1);
-        upstream.subscribe(Adapters.toAcknowledgeableSubscriber(downstream));
-        upstream.sink().next(acknowledgeable);
+        Sinks.Many<Acknowledgeable<String>> sink = Sinks.many().multicast().onBackpressureBuffer();
+        sink.asFlux().subscribe(Adapters.toAcknowledgeableSubscriber(downstream));
+        sink.tryEmitNext(acknowledgeable);
 
         assertTrue(acknowledgeable.isAcknowledged());
     }
 
     @Test
     public void consumerDoesNotDeadlockOnFailureWithRetry() {
-        FluxProcessor<String, String> processor = EmitterProcessor.create(1);
+        Sinks.Many<String> sink = Sinks.many().multicast().onBackpressureBuffer();
+        SubscriberFactory<String> subscriberFactory = () -> Adapters.toSubscriber(sink::tryEmitNext);
 
-        handleWithErrorAndRetry(processor).subscribe();
+        handleWithErrorAndRetry(sink.asFlux()).subscribe();
 
-        Adapters.toConsumer(() -> processor).accept("Hello");
+        Adapters.toConsumer(subscriberFactory).accept("Hello");
     }
 
     @Test

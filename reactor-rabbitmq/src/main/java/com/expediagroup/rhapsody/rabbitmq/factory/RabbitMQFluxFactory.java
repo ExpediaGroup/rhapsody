@@ -28,10 +28,8 @@ import com.expediagroup.rhapsody.rabbitmq.serde.BodyDeserializer;
 import com.expediagroup.rhapsody.util.ConfigLoading;
 import com.rabbitmq.client.ConnectionFactory;
 
-import reactor.core.publisher.EmitterProcessor;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxProcessor;
-import reactor.core.publisher.FluxSink;
+import reactor.core.publisher.Sinks;
 import reactor.rabbitmq.AcknowledgableDelivery;
 import reactor.rabbitmq.ConsumeOptions;
 import reactor.rabbitmq.Receiver;
@@ -74,12 +72,11 @@ public class RabbitMQFluxFactory<T> {
     }
 
     private Flux<AckableRabbitMessage<T>> consumeManualAck(String queue) {
-        FluxProcessor<AckableRabbitMessage<T>, AckableRabbitMessage<T>> manualProcessor = EmitterProcessor.create();
-        FluxSink<AckableRabbitMessage<T>> sink = manualProcessor.sink();
+        Sinks.Empty<AckableRabbitMessage<T>> sink = Sinks.empty();
         return new Receiver(createReceiverOptions())
             .consumeManualAck(queue, createConsumeOptions())
-            .map(delivery -> deserialize(delivery, sink::error))
-            .mergeWith(manualProcessor);
+            .map(delivery -> deserialize(delivery, sink::tryEmitError))
+            .mergeWith(sink.asMono());
     }
 
     private ReceiverOptions createReceiverOptions() {

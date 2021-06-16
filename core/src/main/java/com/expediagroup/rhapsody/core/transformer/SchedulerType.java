@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.function.BiFunction;
 
 import com.expediagroup.rhapsody.util.ConfigLoading;
+import com.expediagroup.rhapsody.util.Defaults;
 
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
@@ -53,7 +54,7 @@ public enum SchedulerType {
     }
 
     private static int loadThreadCap(Map<String, ?> config) {
-        return ConfigLoading.load(config, "threadCap", Integer::valueOf, 10 * Runtime.getRuntime().availableProcessors());
+        return ConfigLoading.load(config, "threadCap", Integer::valueOf, Defaults.THREAD_CAP);
     }
 
     private static int loadQueuedTaskCap(Map<String, ?> config) {
