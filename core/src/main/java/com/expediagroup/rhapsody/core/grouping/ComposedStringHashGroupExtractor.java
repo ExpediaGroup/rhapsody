@@ -17,6 +17,8 @@ package com.expediagroup.rhapsody.core.grouping;
 
 import java.util.function.Function;
 
+import com.expediagroup.rhapsody.api.Acknowledgeable;
+
 public class ComposedStringHashGroupExtractor<T> extends StringHashGroupExtractor<T> {
 
     private final Function<? super T, String> stringExtractor;
@@ -24,6 +26,11 @@ public class ComposedStringHashGroupExtractor<T> extends StringHashGroupExtracto
     public ComposedStringHashGroupExtractor(int modulus, Function<? super T, String> stringExtractor) {
         super(modulus);
         this.stringExtractor = stringExtractor;
+    }
+
+    public static <T> ComposedStringHashGroupExtractor<Acknowledgeable<T>>
+    acknowledgeable(int modulus, Function<? super T, String> stringExtractor) {
+        return new ComposedStringHashGroupExtractor<>(modulus, stringExtractor.compose(Acknowledgeable::get));
     }
 
     @Override
