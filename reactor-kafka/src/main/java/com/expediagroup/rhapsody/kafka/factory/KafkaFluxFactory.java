@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
@@ -55,12 +56,42 @@ import reactor.kafka.receiver.ReceiverPartition;
 
 public class KafkaFluxFactory<K, V> {
 
+    /**
+     * Reactor allows controlling the timeout of its polls to Kafka. This config can be
+     * increased if the Kafka cluster is slow to respond. Specified as ISO-8601 Duration
+     * e.g. PT10S
+     */
     public static final String POLL_TIMEOUT_CONFIG = "poll.timeout";
 
+    /**
+     * Closing the underlying Kafka Consumer is a fallible process. In order to not infinitely
+     * deadlock a Consumer during this process (which can lead to non-consumption of assigned
+     * partitions), we use a default equal to what's used in KafkaConsumer::close
+     */
     public static final String CLOSE_TIMEOUT_CONFIG = "close.timeout";
 
+    /**
+     * Reactor takes control of offset committing by disabling the native Kafka auto commit
+     * and periodically committing offsets of acknowledged Records. Since the native
+     * auto-commit is disabled, we are reusing the native property used to configure offset
+     * commit intervals.
+     */
+    public static final String AUTO_COMMIT_INTERVAL_MS_CONFIG = ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG;
+
+    /**
+     * Committing Offsets can fail for retriable reasons. This config can be increased if
+     * failing to commit offsets is found to be particularly frequent
+     */
     public static final String MAX_COMMIT_ATTEMPTS_CONFIG = "max.commit.attempts";
 
+    /**
+     * Subscribers may want to block request Threads on assignment of partitions AND subsequent
+     * fetching/updating of offset positions on those partitions such that all imminently
+     * produced Records to the subscribed Topics will be received by the associated Consumer
+     * Group. This can help avoid timing problems, particularly with tests, and avoids having
+     * to use `auto.offset.reset = "earliest"` to guarantee receipt of Records immediately
+     * produced by the request Thread (directly or indirectly)
+     */
     public static final String BLOCK_REQUEST_ON_PARTITION_ASSIGNMENT_CONFIG = "block.request.on.partition.assignment";
 
     private static final Duration DEFAULT_CLOSE_TIMEOUT = Duration.ofSeconds(30L);
@@ -108,34 +139,19 @@ public class KafkaFluxFactory<K, V> {
 
         ReceiverOptions<K, V> receiverOptions = ReceiverOptions.create(properties);
 
-        // Reactor allows controlling the timeout of its polls to Kafka. This config can be
-        // increased if the Kafka cluster is slow to respond.
+        // Poll timeout (ISO-8601) duration
         receiverOptions.pollTimeout(ConfigLoading.load(properties, POLL_TIMEOUT_CONFIG, Duration::parse, receiverOptions.pollTimeout()));
 
-        // Closing the underlying Kafka Consumer is a fallible process. In order to not infinitely
-        // deadlock a Consumer during this process (which can lead to non-consumption of assigned
-        // partitions), we use a default equal to what's used in KafkaConsumer::close
+        // Close timeout (ISO-8601) duration
         receiverOptions.closeTimeout(ConfigLoading.load(properties, CLOSE_TIMEOUT_CONFIG, Duration::parse, DEFAULT_CLOSE_TIMEOUT));
 
-        // Reactor takes control of offset committing by disabling the native Kafka auto commit
-        // and periodically committing offsets of acknowledged Records. Since the native
-        // auto-commit is disabled, we are reusing the native property used to configure offset
-        // commit intervals.
-        receiverOptions.commitInterval(
-            ConfigLoading.load(properties, ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, Long::valueOf)
-                .map(Duration::ofMillis)
-                .orElse(receiverOptions.commitInterval()));
+        // Auto commit interval
+        receiverOptions.commitInterval(loadCommitInterval(properties).orElse(receiverOptions.commitInterval()));
 
-        // Committing Offsets can fail for retriable reasons. This config can be increased if
-        // failing to commit offsets is found to be particularly frequent
+        // Max commit attempts
         receiverOptions.maxCommitAttempts(ConfigLoading.load(properties, MAX_COMMIT_ATTEMPTS_CONFIG, Integer::valueOf, receiverOptions.maxCommitAttempts()));
 
-        // Subscribers may want to block request Threads on assignment of partitions AND subsequent
-        // fetching/updating of offset positions on those partitions such that all imminently
-        // produced Records to the subscribed Topics will be received by the associated Consumer
-        // Group. This can help avoid timing problems, particularly with tests, and avoids having
-        // to use `auto.offset.reset = "earliest"` to guarantee receipt of Records immediately
-        // produced by the request Thread (directly or indirectly)
+        // Create future that allows blocking on partition assignment and positioning
         CompletableFuture<Collection<ReceiverPartition>> assignedPartitions =
             ConfigLoading.load(properties, BLOCK_REQUEST_ON_PARTITION_ASSIGNMENT_CONFIG, Boolean::valueOf, DEFAULT_BLOCK_REQUEST_ON_PARTITION_ASSIGNMENT) ?
                 new CompletableFuture<>() : CompletableFuture.completedFuture(Collections.emptyList());
@@ -202,5 +218,9 @@ public class KafkaFluxFactory<K, V> {
 
     private static String registerNewClient(String clientId) {
         return clientId + "-" + REGISTRATION_COUNTS_BY_CLIENT_ID.computeIfAbsent(clientId, key -> new AtomicLong()).incrementAndGet();
+    }
+
+    private static Optional<Duration> loadCommitInterval(Map<String, Object> properties) {
+        return ConfigLoading.load(properties, AUTO_COMMIT_INTERVAL_MS_CONFIG, Long::valueOf).map(Duration::ofMillis);
     }
 }

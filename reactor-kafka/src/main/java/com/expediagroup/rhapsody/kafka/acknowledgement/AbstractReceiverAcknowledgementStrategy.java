@@ -37,7 +37,7 @@ abstract class AbstractReceiverAcknowledgementStrategy implements ReceiverAcknow
     public final <K, V> Function<? super Publisher<ReceiverRecord<K, V>>, ? extends Publisher<Acknowledgeable<ConsumerRecord<K, V>>>>
     createRecordTransformer(Map<String, ?> properties) {
         AcknowledgeableConsumerRecordFactory<K, V> acknowledgeableFactory = AcknowledgeableConsumerRecordFactory.create(properties);
-        long maxInFlight = ReceiverAcknowledgementStrategy.loadMaxInFlightPerTopicPartition(properties).orElse(Long.MAX_VALUE);
+        long maxInFlight = ReceiverAcknowledgementStrategy.loadMaxInFlightPerSubscription(properties).orElse(Long.MAX_VALUE);
         return source -> Flux.defer(() -> transform(source, acknowledgeableFactory, maxInFlight));
     }
 

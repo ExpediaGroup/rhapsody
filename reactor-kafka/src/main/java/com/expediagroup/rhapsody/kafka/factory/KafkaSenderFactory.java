@@ -17,6 +17,7 @@ package com.expediagroup.rhapsody.kafka.factory;
 
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
@@ -41,12 +42,48 @@ import reactor.util.retry.Retry;
 
 public class KafkaSenderFactory<K, V> {
 
+    /**
+     * @deprecated use {@value #MAX_IN_FLIGHT_PER_SEND_CONFIG}
+     */
+    @Deprecated
     public static final String MAX_IN_FLIGHT_CONFIG = "max.in.flight";
 
+    /**
+     * This is the maximum number of "in-flight" Records per sent Publisher. Note that this is
+     * different from ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, which controls the
+     * total number of in-flight Requests for all sent Publishers on a Sender/Producer. It is
+     * important to note that if this is greater than 1 and a fatal error/cancellation occurs,
+     * the SenderResults of other in-flight Records will NOT be delivered downstream, removing
+     * the ability to execute auxiliary tasks on those Results, i.e. recovery from error or
+     * execution of acknowledgement
+     */
+    public static final String MAX_IN_FLIGHT_PER_SEND_CONFIG = "sender.max.in.flight.per.send";
+
+    /**
+     * Enables headers to be serialized on outbound ProduerRecords. Defaults to false as this
+     * helps work around issues of pre-0.11.0.0 Kafka Client users and/or usage with Kafka
+     * Brokers/Topics that use `log.message.format.version` < 0.11.0.0. Defaulting to false
+     * also helps to not break backward compatibility.
+     */
     public static final String HEADERS_ENABLED_CONFIG = "headers.enabled";
 
+    /**
+     * Upon occurrence of synchronous Exceptions (i.e. serialization), sent Publishers are
+     * immediately fatally errored/canceled. Upon asynchronous Exceptions (i.e. network issue),
+     * Reactor allows configuring whether or not to "stop" (aka error-out) the sent Publisher.
+     * Therefore, if this is disabled, there can be slightly different behavior for synchronous
+     * vs. asynchronous Exceptions. Most commonly, with non-singleton Publishers and with Error
+     * Resubscription enabled, the difference in behavior is directly related to the max number
+     * of in-flight Records, i.e. if the max in-flight Records is 1, there is no difference
+     * between this being enabled or disabled. If the max in-flight messages is greater than 1,
+     * other in-flight SenderResults may not be delivered downstream if this is enabled.
+     */
     public static final String STOP_ON_ERROR_CONFIG = "stop.on.error";
 
+    /**
+     * For sent Publishers, this configures whether or not Publishers are immediately resubscribed
+     * to in the event of an error. Enabled by default, and mostly useful for infinite streams.
+     */
     public static final String RESUBSCRIBE_ON_ERROR_CONFIG = "resubscribe.on.error";
 
     private static final boolean DEFAULT_HEADERS_ENABLED = false;
@@ -104,24 +141,10 @@ public class KafkaSenderFactory<K, V> {
         // Publish SenderResults on a dedicated-and-identifiable non-daemon Scheduler
         senderOptions.scheduler(Schedulers.newSingle(KafkaSenderFactory.class.getSimpleName() + "-" + uniqueClientId));
 
-        // This is the maximum number of "in-flight" Records per sent Publisher. Note that this is
-        // different from ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, which controls the
-        // total number of in-flight Requests for all sent Publishers on a Sender/Producer. It is
-        // important to note that if this is greater than 1 and a fatal error/cancellation occurs,
-        // the SenderResults of other in-flight Records will NOT be delivered downstream, removing
-        // the ability to execute auxiliary tasks on those Results, i.e. recovery from error or
-        // execution of acknowledgement
-        senderOptions.maxInFlight(ConfigLoading.load(properties, MAX_IN_FLIGHT_CONFIG, Integer::valueOf, senderOptions.maxInFlight()));
+        // Max in-flight records per sent publisher
+        senderOptions.maxInFlight(loadMaxInFlightPerSend(properties).orElse(senderOptions.maxInFlight()));
 
-        // Upon occurrence of synchronous Exceptions (i.e. serialization), sent Publishers are
-        // immediately fatally errored/canceled. Upon asynchronous Exceptions (i.e. network issue),
-        // Reactor allows configuring whether or not to "stop" (aka error-out) the sent Publisher.
-        // Therefore, if this is disabled, there can be slightly different behavior for synchronous
-        // vs. asynchronous Exceptions. Most commonly, with non-singleton Publishers and with Error
-        // Resubscription enabled, the difference in behavior is directly related to the max number
-        // of in-flight Records, i.e. if the max in-flight Records is 1, there is no difference
-        // between this being enabled or disabled. If the max in-flight messages is greater than 1,
-        // other in-flight SenderResults may not be delivered downstream if this is enabled.
+        // Whether or not to stop on async errors
         senderOptions.stopOnError(ConfigLoading.load(properties, STOP_ON_ERROR_CONFIG, Boolean::valueOf, DEFAULT_STOP_ON_ERROR));
 
         return senderOptions;
@@ -142,9 +165,7 @@ public class KafkaSenderFactory<K, V> {
         return createSenderRecord(producerRecord, producerRecord.value());
     }
 
-    // This method helps work around issues of pre-0.11.0.0 Kafka Client users and/or usage with
-    // with Kafka Brokers/Topics that use `log.message.format.version` < 0.11.0.0. Headers
-    // enablement defaults to false in order to not break backward-compatibility
+    // Creates SenderRecords while stripping out Headers iff Headers are present but disabled
     private <T> SenderRecord<K, V, T> createSenderRecord(ProducerRecord<K, V> record, T correlationMetadata) {
         return headersEnabled || !record.headers().iterator().hasNext() ?
             SenderRecord.create(record, correlationMetadata) :
@@ -153,5 +174,15 @@ public class KafkaSenderFactory<K, V> {
 
     private static String registerNewClient(String clientId) {
         return clientId + "-" + REGISTRATION_COUNTS_BY_CLIENT_ID.computeIfAbsent(clientId, key -> new AtomicLong()).incrementAndGet();
+    }
+
+    private static Optional<Integer> loadMaxInFlightPerSend(Map<String, Object> properties) {
+        Optional<Integer> maxInFlight = ConfigLoading.load(properties, MAX_IN_FLIGHT_CONFIG, Integer::valueOf);
+        if (maxInFlight.isPresent()) {
+            LOGGER.warn("The configuration {} is deprecated and will be removed in a future release. Switch to {}",
+                MAX_IN_FLIGHT_CONFIG, MAX_IN_FLIGHT_PER_SEND_CONFIG);
+            return maxInFlight;
+        }
+        return ConfigLoading.load(properties, MAX_IN_FLIGHT_PER_SEND_CONFIG, Integer::valueOf);
     }
 }
