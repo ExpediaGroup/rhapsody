@@ -32,7 +32,7 @@ public class ActivityEnforcingTransformerTest {
 
     private final Sinks.Many<String> sink = Sinks.many().multicast().onBackpressureBuffer();
 
-    private final Flux<String> downstream = sink.asFlux().transform(new ActivityEnforcingTransformer<>(CONFIG));
+    private final Flux<String> downstream = sink.asFlux().transformDeferred(new ActivityEnforcingTransformer<>(CONFIG));
 
     @Test
     public void errorIsEmittedIfStreamIsInactive() {

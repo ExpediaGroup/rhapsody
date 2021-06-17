@@ -21,21 +21,41 @@ import java.util.function.Function;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.reactivestreams.Publisher;
+import org.slf4j.LoggerFactory;
 
 import com.expediagroup.rhapsody.api.Acknowledgeable;
 import com.expediagroup.rhapsody.util.ConfigLoading;
 
 import reactor.kafka.receiver.ReceiverRecord;
 
+/**
+ * Provides implementation of how to convert Flux of Reactor Kafka ReceiverRecords in to
+ * Acknowledgeable Kafka-native ConsumerRecords
+ */
 public interface ReceiverAcknowledgementStrategy {
 
+    /**
+     * @deprecated use {@value #MAX_IN_FLIGHT_PER_SUBSCRIPTION_CONFIG}
+     */
+    @Deprecated
     String MAX_IN_FLIGHT_PER_TOPIC_PARTITION_CONFIG = "max.in.flight.per.topic.partition";
 
-    // Subscribers can control the number of "in-flight" (unacknowledged) Records emitted, with
-    // Acknowledgement managed on a per-Topic-Partition basis. This can be helpful for controlling
-    // memory usage and "Quality of Service"
-    static Optional<Long> loadMaxInFlightPerTopicPartition(Map<String, ?> properties) {
-        return ConfigLoading.load(properties, MAX_IN_FLIGHT_PER_TOPIC_PARTITION_CONFIG, Long::valueOf);
+    /**
+     * Subscribers can control the max <b>total</b> number of "in-flight" (unacknowledged) Records
+     * emitted (with acknowledgement managed on a per-Topic-Partition basis). This can be helpful
+     * for controlling memory usage and "Quality of Service"
+     */
+    String MAX_IN_FLIGHT_PER_SUBSCRIPTION_CONFIG = "receiver.max.in.flight.per.subscription";
+
+    static Optional<Long> loadMaxInFlightPerSubscription(Map<String, ?> properties) {
+        Optional<Long> maxInFlight = ConfigLoading.load(properties, MAX_IN_FLIGHT_PER_TOPIC_PARTITION_CONFIG, Long::valueOf);
+        if (maxInFlight.isPresent()) {
+            LoggerFactory.getLogger(ReceiverAcknowledgementStrategy.class)
+                .warn("The configuration '{}' is deprecated and will be removed in a future release. Switch to '{}'",
+                    MAX_IN_FLIGHT_PER_TOPIC_PARTITION_CONFIG, MAX_IN_FLIGHT_PER_SUBSCRIPTION_CONFIG);
+            return maxInFlight;
+        }
+        return ConfigLoading.load(properties, MAX_IN_FLIGHT_PER_SUBSCRIPTION_CONFIG, Long::valueOf);
     }
 
     <K, V> Function<? super Publisher<ReceiverRecord<K, V>>, ? extends Publisher<Acknowledgeable<ConsumerRecord<K, V>>>>
