@@ -62,8 +62,8 @@ public class KafkaSenderFactory<K, V> {
     /**
      * Enables headers to be serialized on outbound ProduerRecords. Defaults to false as this
      * helps work around issues of pre-0.11.0.0 Kafka Client users and/or usage with Kafka
-     * Brokers/Topics that use `log.message.format.version` < 0.11.0.0. Defaulting to false
-     * also helps to not break backward compatibility.
+     * Brokers/Topics that use `log.message.format.version` earlier than 0.11.0.0. Defaulting
+     * to false also helps to not break backward compatibility.
      */
     public static final String HEADERS_ENABLED_CONFIG = "headers.enabled";
 
