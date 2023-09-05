@@ -13,7 +13,7 @@
 
     <properties>
         <!--Library Versions-->
-        <apache-kafka.version>2.3.1</apache-kafka.version>
+        <apache-kafka.version>5.3.0-ccs</apache-kafka.version>
         <confluent.version>5.2.4</confluent.version>
         <dropwizard.version>2.0.8</dropwizard.version>
         <dropwizard-metrics.version>4.1.6</dropwizard-metrics.version>
